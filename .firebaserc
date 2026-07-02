@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "padel-club-score",
+    "clubstaging": "padel-club-score"
+  },
+  "targets": {},
+  "etags": {}
+}

@@ -1,0 +1,253 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import type { Match } from '@/stores/matches'
+import { useMatchesStore } from '@/stores/matches'
+import type { Player } from '@/stores/players'
+
+const props = defineProps<{
+  match: Match
+  players: Player[]
+}>()
+
+const emit = defineEmits<{
+  'play-now': [match: Match]
+  'cancel-match': [matchId: string]
+}>()
+
+const matchesStore = useMatchesStore()
+
+const isEditing = ref(false)
+const editDate = ref('')
+const editTime = ref('')
+
+const playerName = (id: string) => props.players.find((p) => p.id === id)?.name ?? '?'
+const teamNames = (ids: string[]) => ids.map(playerName).join(' & ')
+
+const formatScheduled = (ts: number) => {
+  const d = new Date(ts)
+  return (
+    d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
+    ' · ' +
+    d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+  )
+}
+
+const openEdit = () => {
+  const d = new Date(props.match.scheduledAt!)
+  editDate.value = d.toISOString().slice(0, 10)
+  editTime.value = d.toTimeString().slice(0, 5)
+  isEditing.value = true
+}
+
+const cancelEdit = () => {
+  isEditing.value = false
+  editDate.value = ''
+  editTime.value = ''
+}
+
+const confirmEdit = async () => {
+  if (!editDate.value || !editTime.value) return
+  const scheduledAt = new Date(`${editDate.value}T${editTime.value}`).getTime()
+  await matchesStore.updateMatchSchedule(props.match.id, scheduledAt)
+  cancelEdit()
+}
+</script>
+
+<template>
+  <div class="scheduled-row">
+    <template v-if="isEditing">
+      <div class="scheduled-edit">
+        <input type="date" v-model="editDate" class="sched-input sched-input--sm" />
+        <input type="time" v-model="editTime" class="sched-input sched-input--sm" />
+        <button class="btn-sm-primary" @click="confirmEdit">Save</button>
+        <button class="btn-sm-ghost" @click="cancelEdit">Cancel</button>
+      </div>
+    </template>
+    <template v-else>
+      <div class="scheduled-info">
+        <span class="scheduled-teams">{{ teamNames(match.teamA) }} vs {{ teamNames(match.teamB) }}</span>
+        <span class="scheduled-time">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          {{ formatScheduled(match.scheduledAt!) }}
+        </span>
+      </div>
+      <div class="scheduled-actions">
+        <button class="btn-play-now" @click="emit('play-now', match)">▶ Play now</button>
+        <button class="btn-icon" title="Edit schedule" @click="openEdit">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+        </button>
+        <button class="btn-icon btn-icon-danger" title="Cancel match" @click="emit('cancel-match', match.id)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+        </button>
+      </div>
+    </template>
+  </div>
+</template>
+
+<style scoped>
+.scheduled-row {
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8f9ff;
+}
+
+.scheduled-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.scheduled-teams {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111111;
+}
+
+.scheduled-time {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  color: #666666;
+}
+
+.scheduled-time svg {
+  flex-shrink: 0;
+}
+
+.scheduled-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.scheduled-edit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.btn-play-now {
+  background: #1f4d82;
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.btn-play-now:hover {
+  background: #163b66;
+}
+
+.sched-input {
+  padding: 7px 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #111111;
+  background: #ffffff;
+  outline: none;
+  cursor: pointer;
+}
+
+.sched-input:focus {
+  border-color: #1f4d82;
+}
+
+.sched-input--sm {
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+.btn-sm-primary {
+  height: 36px;
+  padding: 0 16px;
+  background: #1f4d82;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.btn-sm-primary:hover:not(:disabled) {
+  background: #2a1a63;
+}
+
+.btn-sm-ghost {
+  height: 36px;
+  padding: 0 12px;
+  background: none;
+  border: none;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #666666;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.btn-sm-ghost:hover {
+  color: #111111;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666666;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-icon:hover:not(:disabled) {
+  background: #f2f3f0;
+  color: #111111;
+}
+
+.btn-icon-danger:hover:not(:disabled) {
+  background: #e5dcda;
+  color: #8c1c00;
+}
+</style>

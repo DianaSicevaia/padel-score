@@ -1,0 +1,319 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import type { Match } from '@/stores/matches'
+import type { Club } from '@/stores/clubs'
+
+defineProps<{
+  club: Club
+  matches: Match[]
+}>()
+
+const emit = defineEmits<{
+  'club-click': [clubId: string]
+}>()
+
+const expandedMatchIds = ref(new Set<string>())
+
+const toggleSetsDetail = (matchId: string) => {
+  const next = new Set(expandedMatchIds.value)
+  if (next.has(matchId)) next.delete(matchId)
+  else next.add(matchId)
+  expandedMatchIds.value = next
+}
+
+const teamDisplay = (m: Match, side: 'A' | 'B') => {
+  const names = side === 'A' ? m.teamANames : m.teamBNames
+  return names?.join(' & ') ?? (side === 'A' ? m.teamA : m.teamB).join(' & ')
+}
+
+const displaySets = (m: Match) =>
+  m.sets && m.sets.length > 0 ? m.sets : [{ scoreA: m.scoreA, scoreB: m.scoreB }]
+
+const setsWon = (m: Match) => {
+  const sets = displaySets(m)
+  return {
+    a: sets.filter((s) => s.scoreA > s.scoreB).length,
+    b: sets.filter((s) => s.scoreB > s.scoreA).length,
+  }
+}
+
+const formatDate = (ts: number) =>
+  new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+</script>
+
+<template>
+  <div class="club-group">
+    <div class="group-hdr">
+      <div class="club-avatar">{{ club.name[0]?.toUpperCase() }}</div>
+      <span class="group-club-name" @click="emit('club-click', club.id)">{{ club.name }}</span>
+      <span class="count-badge">{{ matches.length }}</span>
+    </div>
+
+    <div class="panel">
+      <template v-for="(match, i) in matches" :key="match.id">
+        <div v-if="i > 0" class="panel-divider"></div>
+        <div class="match-row">
+          <div class="match-row-main">
+            <div class="match-teams">
+              <span class="team-name" :class="{ 'team-name--winner': match.winnerTeam === 'A' }">
+                {{ teamDisplay(match, 'A') }}
+              </span>
+              <div class="match-score-block">
+                <template v-if="displaySets(match).length > 1">
+                  <button
+                    class="match-score-summary"
+                    :class="{ 'match-score-summary--open': expandedMatchIds.has(match.id) }"
+                    type="button"
+                    @click.stop="toggleSetsDetail(match.id)"
+                  >
+                    <span :class="match.winnerTeam === 'A' ? 'sp-win' : 'sp-lose'">{{ setsWon(match).a }}</span>
+                    <span class="sp-sep">:</span>
+                    <span :class="match.winnerTeam === 'B' ? 'sp-win' : 'sp-lose'">{{ setsWon(match).b }}</span>
+                    <svg
+                      class="score-chevron"
+                      :class="{ 'score-chevron--open': expandedMatchIds.has(match.id) }"
+                      width="10" height="10" viewBox="0 0 24 24"
+                      fill="none" stroke="currentColor" stroke-width="2.5"
+                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+                    >
+                      <path d="m6 9 6 6 6-6" />
+                    </svg>
+                  </button>
+                </template>
+                <template v-else>
+                  <span v-for="s in displaySets(match)" :key="s.scoreA" class="set-pill">
+                    <span :class="s.scoreA > s.scoreB ? 'sp-win' : 'sp-lose'">{{ s.scoreA }}</span>
+                    <span class="sp-sep">:</span>
+                    <span :class="s.scoreB > s.scoreA ? 'sp-win' : 'sp-lose'">{{ s.scoreB }}</span>
+                  </span>
+                </template>
+              </div>
+              <span class="team-name team-name--right" :class="{ 'team-name--winner': match.winnerTeam === 'B' }">
+                {{ teamDisplay(match, 'B') }}
+              </span>
+            </div>
+            <span class="match-date">{{ formatDate(match.createdAt) }}</span>
+          </div>
+          <div v-if="displaySets(match).length > 1 && expandedMatchIds.has(match.id)" class="sets-detail">
+            <div v-for="(s, si) in displaySets(match)" :key="si" class="sets-detail-item">
+              <span class="sets-detail-num">{{ si + 1 }}</span>
+              <span :class="s.scoreA > s.scoreB ? 'sp-win' : 'sp-lose'">{{ s.scoreA }}</span>
+              <span class="sp-sep">:</span>
+              <span :class="s.scoreB > s.scoreA ? 'sp-win' : 'sp-lose'">{{ s.scoreB }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.club-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 680px;
+}
+
+.group-hdr {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.club-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #1f4d82;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Anton', sans-serif;
+  font-size: 15px;
+  color: #ffffff;
+  font-weight: normal;
+  flex-shrink: 0;
+}
+
+.group-club-name {
+  font-family: 'Anton', sans-serif;
+  font-size: 18px;
+  color: #111111;
+  font-weight: normal;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.group-club-name:hover {
+  color: #34217c;
+}
+
+.count-badge {
+  background: #e7e8e5;
+  color: #666666;
+  font-family: 'Geist Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.panel {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.panel-divider {
+  height: 1px;
+  background: #f2f3f0;
+}
+
+.match-row {
+  display: flex;
+  flex-direction: column;
+}
+
+.match-row-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  gap: 16px;
+}
+
+.match-teams {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.team-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: #888888;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.team-name--right {
+  text-align: right;
+}
+
+.team-name--winner {
+  font-weight: 700;
+  color: #111111;
+}
+
+.match-score-block {
+  flex-shrink: 0;
+}
+
+.match-score-summary {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-family: 'Anton', sans-serif;
+  font-size: 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 3px 7px;
+  border-radius: 6px;
+  transition: background 0.12s;
+}
+
+.match-score-summary:hover,
+.match-score-summary--open {
+  background: #f2f3f0;
+}
+
+.score-chevron {
+  color: #cbccc9;
+  margin-left: 3px;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+
+.score-chevron--open {
+  transform: rotate(180deg);
+}
+
+.set-pill {
+  font-family: 'Anton', sans-serif;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.sp-win {
+  color: #111111;
+}
+
+.sp-lose {
+  color: #cbccc9;
+}
+
+.sp-sep {
+  font-family: 'Anton', sans-serif;
+  font-size: 16px;
+  color: #e7e8e5;
+  margin: 0 1px;
+}
+
+.sets-detail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 6px 20px 10px;
+  border-top: 1px solid #f2f3f0;
+}
+
+.sets-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'Anton', sans-serif;
+  font-size: 16px;
+}
+
+.sets-detail-num {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #bbbbbb;
+  width: 14px;
+  text-align: right;
+}
+
+.match-date {
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  color: #888888;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .club-group {
+    max-width: 100%;
+  }
+
+  .match-row {
+    padding: 10px 16px;
+  }
+
+  .team-name {
+    font-size: 12px;
+  }
+}
+</style>
