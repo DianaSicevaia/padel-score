@@ -24,7 +24,7 @@ defineProps<{
 }
 
 .stat-card {
-  background: #ffffff;
+  background: var(--color-white);
   border-radius: 12px;
   padding: 20px 24px;
   display: flex;
@@ -36,7 +36,7 @@ defineProps<{
 .stat-label {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
-  color: #666666;
+  color: var(--color-text-muted);
   letter-spacing: 1px;
 }
 
@@ -49,7 +49,7 @@ defineProps<{
 .stat-value {
   font-family: 'Anton', sans-serif;
   font-size: 36px;
-  color: #111111;
+  color: var(--color-text);
   font-weight: normal;
   line-height: 1;
 }

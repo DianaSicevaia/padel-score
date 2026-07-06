@@ -187,7 +187,7 @@ const logout = async () => {
 .page {
   display: flex;
   height: 100vh;
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
   font-family: 'Inter', sans-serif;
   overflow: hidden;
 }
@@ -227,13 +227,13 @@ const logout = async () => {
   font-family: 'Anton', sans-serif;
   font-size: 28px;
   font-weight: normal;
-  color: #111111;
+  color: var(--color-text);
   margin: 0;
 }
 
 /* ── PANEL ── */
 .panel {
-  background: #ffffff;
+  background: var(--color-white);
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -250,13 +250,13 @@ const logout = async () => {
 .panel-title {
   font-family: 'Anton', sans-serif;
   font-size: 18px;
-  color: #111111;
+  color: var(--color-text);
   font-weight: normal;
 }
 
 .panel-divider {
   height: 1px;
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
 }
 
 /* ── PROFILE ── */
@@ -271,7 +271,7 @@ const logout = async () => {
   width: 72px;
   height: 72px;
   border-radius: 999px;
-  background: #1f4d82;
+  background: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -288,7 +288,7 @@ const logout = async () => {
 .avatar-initials {
   font-family: 'Anton', sans-serif;
   font-size: 28px;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: normal;
 }
 
@@ -303,20 +303,20 @@ const logout = async () => {
   font-family: 'Anton', sans-serif;
   font-size: 22px;
   font-weight: normal;
-  color: #111111;
+  color: var(--color-text);
 }
 
 .profile-email {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  color: #444444;
+  color: var(--color-text-strong);
   word-break: break-all;
 }
 
 .profile-since {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
-  color: #888888;
+  color: var(--color-text-subtle);
   margin-top: 2px;
 }
 
@@ -330,7 +330,7 @@ const logout = async () => {
   align-items: center;
   gap: 8px;
   background: transparent;
-  color: #c0392b;
+  color: var(--color-danger-alt);
   border: 1.5px solid #e8b4b0;
   border-radius: 999px;
   padding: 9px 20px;
@@ -345,7 +345,7 @@ const logout = async () => {
 
 .btn-logout:hover {
   background: #fdf1f0;
-  border-color: #c0392b;
+  border-color: var(--color-danger-alt);
 }
 
 /* ── MOBILE ── */
@@ -361,7 +361,7 @@ const logout = async () => {
     align-items: center;
     justify-content: space-between;
     padding: 14px 20px;
-    background: #ffffff;
+    background: var(--color-white);
     flex-shrink: 0;
   }
 
@@ -374,21 +374,21 @@ const logout = async () => {
   .m-logo-icon {
     width: 28px;
     height: 28px;
-    background: #1f4d82;
+    background: var(--color-primary);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: 'Anton', sans-serif;
     font-size: 14px;
-    color: #ffffff;
+    color: var(--color-white);
     font-weight: normal;
   }
 
   .m-logo-text {
     font-family: 'Anton', sans-serif;
     font-size: 18px;
-    color: #111111;
+    color: var(--color-text);
     font-weight: normal;
   }
 
@@ -405,7 +405,7 @@ const logout = async () => {
     align-items: center;
     justify-content: space-around;
     padding: 10px 0;
-    background: #ffffff;
+    background: var(--color-white);
     box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.08);
     flex-shrink: 0;
   }
@@ -420,14 +420,14 @@ const logout = async () => {
     background: none;
     border: none;
     cursor: pointer;
-    color: #666666;
+    color: var(--color-text-muted);
     font-family: 'Inter', sans-serif;
     font-size: 10px;
     font-weight: 400;
   }
 
   .m-nav-item--active {
-    color: #34217c;
+    color: var(--color-accent);
     font-weight: 600;
   }
 }

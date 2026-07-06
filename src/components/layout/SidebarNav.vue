@@ -178,13 +178,13 @@ const initials = computed(() => {
 .sidebar {
   width: 260px;
   flex-shrink: 0;
-  background: #ffffff;
+  background: var(--color-white);
   display: flex;
   flex-direction: column;
   padding: 24px 20px;
   height: 100vh;
   overflow-y: auto;
-  border-right: 1px solid #cbccc9;
+  border-right: 1px solid var(--color-border);
 }
 
 .sb-logo {
@@ -197,14 +197,14 @@ const initials = computed(() => {
 .sb-logo-icon {
   width: 36px;
   height: 36px;
-  background: #34217c;
+  background: var(--color-accent);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Anton', sans-serif;
   font-size: 20px;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: normal;
   flex-shrink: 0;
 }
@@ -212,13 +212,13 @@ const initials = computed(() => {
 .sb-logo-text {
   font-family: 'Anton', sans-serif;
   font-size: 22px;
-  color: #111111;
+  color: var(--color-text);
   font-weight: normal;
 }
 
 .sb-divider {
   height: 1px;
-  background: #cbccc9;
+  background: var(--color-border);
   flex-shrink: 0;
 }
 
@@ -237,33 +237,33 @@ const initials = computed(() => {
   border-radius: 8px;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  color: #111111;
+  color: var(--color-text);
   cursor: pointer;
   text-decoration: none;
   transition: background 0.15s;
 }
 
 .sb-nav-item svg {
-  color: #666666;
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
 .sb-nav-item:hover {
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
 }
 
 .sb-nav-item--active {
-  background: #1f4d82;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-white);
   font-weight: 600;
 }
 
 .sb-nav-item--active svg {
-  color: #ffffff;
+  color: var(--color-white);
 }
 
 .sb-nav-item--active:hover {
-  background: #2a1a63;
+  background: var(--color-primary-hover);
 }
 
 .sb-spacer {
@@ -275,7 +275,7 @@ const initials = computed(() => {
   align-items: center;
   gap: 10px;
   padding-top: 12px;
-  border-top: 1px solid #f2f3f0;
+  border-top: 1px solid var(--color-bg-soft);
   margin-top: 4px;
 }
 
@@ -283,14 +283,14 @@ const initials = computed(() => {
   width: 36px;
   height: 36px;
   border-radius: 999px;
-  background: #e7e8e5;
+  background: var(--color-bg-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
   font-weight: 600;
-  color: #111111;
+  color: var(--color-text);
   flex-shrink: 0;
 }
 
@@ -298,14 +298,14 @@ const initials = computed(() => {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 600;
-  color: #111111;
+  color: var(--color-text);
   display: block;
 }
 
 .sb-user-role {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
-  color: #666666;
+  color: var(--color-text-muted);
   display: block;
 }
 

@@ -10,6 +10,7 @@ const emit = defineEmits<{
   close: []
   'select-club': [clubId: string]
   'create-club': []
+  'create-standalone': []
 }>()
 </script>
 
@@ -55,6 +56,18 @@ const emit = defineEmits<{
           </svg>
           Create new club
         </button>
+
+        <div class="modal-divider"></div>
+
+        <button class="modal-create-club" @click="emit('create-standalone')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          Match without a club
+        </button>
       </div>
     </div>
   </Teleport>
@@ -73,7 +86,7 @@ const emit = defineEmits<{
 }
 
 .modal {
-  background: #ffffff;
+  background: var(--color-white);
   border-radius: 16px;
   width: 100%;
   max-width: 420px;
@@ -94,7 +107,7 @@ const emit = defineEmits<{
   font-family: 'Anton', sans-serif;
   font-size: 20px;
   font-weight: normal;
-  color: #111111;
+  color: var(--color-text);
   margin: 0;
 }
 
@@ -105,7 +118,7 @@ const emit = defineEmits<{
   background: none;
   border: none;
   cursor: pointer;
-  color: #666666;
+  color: var(--color-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -113,14 +126,14 @@ const emit = defineEmits<{
 }
 
 .modal-close:hover {
-  background: #f2f3f0;
-  color: #111111;
+  background: var(--color-bg-soft);
+  color: var(--color-text);
 }
 
 .modal-sub {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #888888;
+  color: var(--color-text-subtle);
   margin: 0;
   padding: 0 20px 12px;
 }
@@ -140,24 +153,24 @@ const emit = defineEmits<{
   cursor: pointer;
   text-align: left;
   transition: background 0.12s;
-  color: #111111;
+  color: var(--color-text);
 }
 
 .modal-club-row:hover {
-  background: #f7f7f5;
+  background: var(--color-bg-hover);
 }
 
 .modal-club-avatar {
   width: 36px;
   height: 36px;
   border-radius: 8px;
-  background: #1f4d82;
+  background: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Anton', sans-serif;
   font-size: 16px;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: normal;
   flex-shrink: 0;
 }
@@ -174,13 +187,13 @@ const emit = defineEmits<{
 }
 
 .modal-club-row svg {
-  color: #cbccc9;
+  color: var(--color-border);
   flex-shrink: 0;
 }
 
 .modal-divider {
   height: 1px;
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
   margin: 4px 0;
 }
 
@@ -195,7 +208,7 @@ const emit = defineEmits<{
   font-family: 'Inter', sans-serif;
   font-size: 14px;
   font-weight: 600;
-  color: #34217c;
+  color: var(--color-accent);
   text-align: left;
   transition: background 0.12s;
   width: 100%;

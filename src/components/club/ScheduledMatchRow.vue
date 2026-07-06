@@ -103,7 +103,7 @@ const confirmEdit = async () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: #f8f9ff;
+  background: var(--color-bg-info);
 }
 
 .scheduled-info {
@@ -118,7 +118,7 @@ const confirmEdit = async () => {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
   font-weight: 600;
-  color: #111111;
+  color: var(--color-text);
 }
 
 .scheduled-time {
@@ -127,7 +127,7 @@ const confirmEdit = async () => {
   gap: 5px;
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 .scheduled-time svg {
@@ -150,8 +150,8 @@ const confirmEdit = async () => {
 }
 
 .btn-play-now {
-  background: #1f4d82;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 999px;
   padding: 5px 12px;
@@ -164,23 +164,23 @@ const confirmEdit = async () => {
 }
 
 .btn-play-now:hover {
-  background: #163b66;
+  background: var(--color-primary-hover-alt);
 }
 
 .sched-input {
   padding: 7px 10px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border-light);
   border-radius: 8px;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #111111;
-  background: #ffffff;
+  color: var(--color-text);
+  background: var(--color-white);
   outline: none;
   cursor: pointer;
 }
 
 .sched-input:focus {
-  border-color: #1f4d82;
+  border-color: var(--color-primary);
 }
 
 .sched-input--sm {
@@ -191,8 +191,8 @@ const confirmEdit = async () => {
 .btn-sm-primary {
   height: 36px;
   padding: 0 16px;
-  background: #1f4d82;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 8px;
   font-family: 'Inter', sans-serif;
@@ -205,7 +205,7 @@ const confirmEdit = async () => {
 }
 
 .btn-sm-primary:hover:not(:disabled) {
-  background: #2a1a63;
+  background: var(--color-primary-hover);
 }
 
 .btn-sm-ghost {
@@ -215,7 +215,7 @@ const confirmEdit = async () => {
   border: none;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #666666;
+  color: var(--color-text-muted);
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
@@ -223,7 +223,7 @@ const confirmEdit = async () => {
 }
 
 .btn-sm-ghost:hover {
-  color: #111111;
+  color: var(--color-text);
 }
 
 .btn-icon {
@@ -236,18 +236,18 @@ const confirmEdit = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666666;
+  color: var(--color-text-muted);
   transition: background 0.15s, color 0.15s;
   flex-shrink: 0;
 }
 
 .btn-icon:hover:not(:disabled) {
-  background: #f2f3f0;
-  color: #111111;
+  background: var(--color-bg-soft);
+  color: var(--color-text);
 }
 
 .btn-icon-danger:hover:not(:disabled) {
-  background: #e5dcda;
-  color: #8c1c00;
+  background: var(--color-danger-bg-hover);
+  color: var(--color-danger-text);
 }
 </style>

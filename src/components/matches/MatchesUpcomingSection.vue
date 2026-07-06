@@ -73,7 +73,7 @@ const teamDisplay = (m: Match, side: 'A' | 'B') => {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
   font-weight: 700;
-  color: #1f4d82;
+  color: var(--color-primary);
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
@@ -95,13 +95,13 @@ const teamDisplay = (m: Match, side: 'A' | 'B') => {
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: #1f4d82;
+  background: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Anton', sans-serif;
   font-size: 15px;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: normal;
   flex-shrink: 0;
 }
@@ -109,19 +109,19 @@ const teamDisplay = (m: Match, side: 'A' | 'B') => {
 .group-club-name {
   font-family: 'Anton', sans-serif;
   font-size: 18px;
-  color: #111111;
+  color: var(--color-text);
   font-weight: normal;
   cursor: pointer;
   transition: color 0.15s;
 }
 
 .group-club-name:hover {
-  color: #34217c;
+  color: var(--color-accent);
 }
 
 .count-badge {
-  background: #e7e8e5;
-  color: #666666;
+  background: var(--color-bg-muted);
+  color: var(--color-text-muted);
   font-family: 'Geist Mono', monospace;
   font-size: 12px;
   font-weight: 700;
@@ -130,7 +130,7 @@ const teamDisplay = (m: Match, side: 'A' | 'B') => {
 }
 
 .panel {
-  background: #ffffff;
+  background: var(--color-white);
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -138,7 +138,7 @@ const teamDisplay = (m: Match, side: 'A' | 'B') => {
 
 .panel-divider {
   height: 1px;
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
 }
 
 .upcoming-match-row {
@@ -146,7 +146,7 @@ const teamDisplay = (m: Match, side: 'A' | 'B') => {
   align-items: center;
   gap: 12px;
   padding: 12px 20px;
-  background: #f8f9ff;
+  background: var(--color-bg-info);
 }
 
 .upcoming-teams {
@@ -160,7 +160,7 @@ const teamDisplay = (m: Match, side: 'A' | 'B') => {
 .team-name {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #888888;
+  color: var(--color-text-subtle);
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -171,7 +171,7 @@ const teamDisplay = (m: Match, side: 'A' | 'B') => {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
   font-weight: 700;
-  color: #aaaaaa;
+  color: var(--color-text-faint);
   flex-shrink: 0;
 }
 
@@ -185,13 +185,13 @@ const teamDisplay = (m: Match, side: 'A' | 'B') => {
 .match-date {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
-  color: #888888;
+  color: var(--color-text-subtle);
   white-space: nowrap;
 }
 
 .btn-play-now {
-  background: #1f4d82;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 999px;
   padding: 5px 12px;
@@ -204,7 +204,7 @@ const teamDisplay = (m: Match, side: 'A' | 'B') => {
 }
 
 .btn-play-now:hover {
-  background: #163b66;
+  background: var(--color-primary-hover-alt);
 }
 
 @media (max-width: 768px) {

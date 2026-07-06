@@ -154,11 +154,11 @@ const formatDate = (ts: number) =>
 
 .match-score-summary:hover,
 .match-score-summary--open {
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
 }
 
 .score-chevron {
-  color: #cbccc9;
+  color: var(--color-border);
   margin-left: 3px;
   flex-shrink: 0;
   transition: transform 0.15s;
@@ -174,7 +174,7 @@ const formatDate = (ts: number) =>
   align-items: center;
   gap: 1px;
   padding: 6px 20px 10px;
-  border-top: 1px solid #f2f3f0;
+  border-top: 1px solid var(--color-bg-soft);
 }
 
 .sets-detail-item {
@@ -189,7 +189,7 @@ const formatDate = (ts: number) =>
   font-family: 'Geist Mono', monospace;
   font-size: 10px;
   font-weight: 700;
-  color: #bbbbbb;
+  color: var(--color-text-faintest);
   width: 14px;
   text-align: right;
 }
@@ -197,7 +197,7 @@ const formatDate = (ts: number) =>
 .match-team-name {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #888888;
+  color: var(--color-text-subtle);
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -210,7 +210,7 @@ const formatDate = (ts: number) =>
 
 .match-team-name--winner {
   font-weight: 700;
-  color: #111111;
+  color: var(--color-text);
 }
 
 .set-pill {
@@ -222,22 +222,22 @@ const formatDate = (ts: number) =>
 }
 
 .sp-win {
-  color: #111111;
+  color: var(--color-text);
 }
 .sp-lose {
-  color: #cbccc9;
+  color: var(--color-border);
 }
 .sp-sep {
   font-family: 'Anton', sans-serif;
   font-size: 16px;
-  color: #e7e8e5;
+  color: var(--color-bg-muted);
   margin: 0 1px;
 }
 
 .match-date-label {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
-  color: #888888;
+  color: var(--color-text-subtle);
   white-space: nowrap;
   flex-shrink: 0;
 }
@@ -255,10 +255,10 @@ const formatDate = (ts: number) =>
 }
 
 .match-row--editing .match-row-main {
-  background: #fafaf9;
+  background: var(--color-bg-subtle);
 }
 .match-row--editing .sets-detail {
-  background: #fafaf9;
+  background: var(--color-bg-subtle);
 }
 .match-row--editing .match-row-actions {
   opacity: 1;
@@ -274,18 +274,18 @@ const formatDate = (ts: number) =>
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666666;
+  color: var(--color-text-muted);
   transition: background 0.15s, color 0.15s;
   flex-shrink: 0;
 }
 
 .btn-icon:hover:not(:disabled) {
-  background: #f2f3f0;
-  color: #111111;
+  background: var(--color-bg-soft);
+  color: var(--color-text);
 }
 .btn-icon-danger:hover:not(:disabled) {
-  background: #e5dcda;
-  color: #8c1c00;
+  background: var(--color-danger-bg-hover);
+  color: var(--color-danger-text);
 }
 .btn-icon:disabled {
   opacity: 0.4;

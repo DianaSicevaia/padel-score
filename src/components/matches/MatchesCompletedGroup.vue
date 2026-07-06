@@ -4,7 +4,7 @@ import type { Match } from '@/stores/matches'
 import type { Club } from '@/stores/clubs'
 
 defineProps<{
-  club: Club
+  club?: Club
   matches: Match[]
 }>()
 
@@ -44,8 +44,14 @@ const formatDate = (ts: number) =>
 <template>
   <div class="club-group">
     <div class="group-hdr">
-      <div class="club-avatar">{{ club.name[0]?.toUpperCase() }}</div>
-      <span class="group-club-name" @click="emit('club-click', club.id)">{{ club.name }}</span>
+      <div v-if="club" class="club-avatar">{{ club.name[0]?.toUpperCase() }}</div>
+      <div v-else class="club-avatar club-avatar--none">⚡</div>
+      <span
+        class="group-club-name"
+        :class="{ 'group-club-name--static': !club }"
+        @click="club && emit('club-click', club.id)"
+        >{{ club ? club.name : 'Without a club' }}</span
+      >
       <span class="count-badge">{{ matches.length }}</span>
     </div>
 
@@ -126,13 +132,13 @@ const formatDate = (ts: number) =>
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: #1f4d82;
+  background: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Anton', sans-serif;
   font-size: 15px;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: normal;
   flex-shrink: 0;
 }
@@ -140,19 +146,31 @@ const formatDate = (ts: number) =>
 .group-club-name {
   font-family: 'Anton', sans-serif;
   font-size: 18px;
-  color: #111111;
+  color: var(--color-text);
   font-weight: normal;
   cursor: pointer;
   transition: color 0.15s;
 }
 
 .group-club-name:hover {
-  color: #34217c;
+  color: var(--color-accent);
+}
+
+.group-club-name--static {
+  cursor: default;
+}
+
+.group-club-name--static:hover {
+  color: var(--color-text);
+}
+
+.club-avatar--none {
+  background: var(--color-text-muted);
 }
 
 .count-badge {
-  background: #e7e8e5;
-  color: #666666;
+  background: var(--color-bg-muted);
+  color: var(--color-text-muted);
   font-family: 'Geist Mono', monospace;
   font-size: 12px;
   font-weight: 700;
@@ -161,7 +179,7 @@ const formatDate = (ts: number) =>
 }
 
 .panel {
-  background: #ffffff;
+  background: var(--color-white);
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -169,7 +187,7 @@ const formatDate = (ts: number) =>
 
 .panel-divider {
   height: 1px;
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
 }
 
 .match-row {
@@ -196,7 +214,7 @@ const formatDate = (ts: number) =>
 .team-name {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #888888;
+  color: var(--color-text-subtle);
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
@@ -209,7 +227,7 @@ const formatDate = (ts: number) =>
 
 .team-name--winner {
   font-weight: 700;
-  color: #111111;
+  color: var(--color-text);
 }
 
 .match-score-block {
@@ -232,11 +250,11 @@ const formatDate = (ts: number) =>
 
 .match-score-summary:hover,
 .match-score-summary--open {
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
 }
 
 .score-chevron {
-  color: #cbccc9;
+  color: var(--color-border);
   margin-left: 3px;
   flex-shrink: 0;
   transition: transform 0.15s;
@@ -255,17 +273,17 @@ const formatDate = (ts: number) =>
 }
 
 .sp-win {
-  color: #111111;
+  color: var(--color-text);
 }
 
 .sp-lose {
-  color: #cbccc9;
+  color: var(--color-border);
 }
 
 .sp-sep {
   font-family: 'Anton', sans-serif;
   font-size: 16px;
-  color: #e7e8e5;
+  color: var(--color-bg-muted);
   margin: 0 1px;
 }
 
@@ -275,7 +293,7 @@ const formatDate = (ts: number) =>
   align-items: center;
   gap: 1px;
   padding: 6px 20px 10px;
-  border-top: 1px solid #f2f3f0;
+  border-top: 1px solid var(--color-bg-soft);
 }
 
 .sets-detail-item {
@@ -290,7 +308,7 @@ const formatDate = (ts: number) =>
   font-family: 'Geist Mono', monospace;
   font-size: 10px;
   font-weight: 700;
-  color: #bbbbbb;
+  color: var(--color-text-faintest);
   width: 14px;
   text-align: right;
 }
@@ -298,7 +316,7 @@ const formatDate = (ts: number) =>
 .match-date {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
-  color: #888888;
+  color: var(--color-text-subtle);
   white-space: nowrap;
   flex-shrink: 0;
 }

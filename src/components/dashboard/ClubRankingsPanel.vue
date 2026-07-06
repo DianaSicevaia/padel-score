@@ -11,7 +11,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'match-click': [clubId: string]
+  'match-click': [clubId: string | undefined]
 }>()
 
 const hoveredRankId = ref<string | null>(null)
@@ -26,7 +26,8 @@ const onRankMouseEnter = (e: MouseEvent, key: string) => {
   }
 }
 
-const upcomingClubName = (cid: string) => props.clubs.find((c) => c.id === cid)?.name ?? ''
+const upcomingClubName = (cid: string | undefined) =>
+  cid ? (props.clubs.find((c) => c.id === cid)?.name ?? '') : ''
 
 const formatUpcoming = (ts: number) => {
   const d = new Date(ts)
@@ -172,7 +173,7 @@ const teamLabel = (names?: string[], ids?: string[]) =>
 
 <style scoped>
 .panel {
-  background: #ffffff;
+  background: var(--color-white);
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   display: flex;
@@ -190,17 +191,17 @@ const teamLabel = (names?: string[], ids?: string[]) =>
 .panel-title {
   font-family: 'Anton', sans-serif;
   font-size: 18px;
-  color: #111111;
+  color: var(--color-text);
   font-weight: normal;
 }
 
 .trophy-icon {
-  color: #1f4d82;
+  color: var(--color-primary);
 }
 
 .panel-divider {
   height: 1px;
-  background: #cbccc9;
+  background: var(--color-border);
   flex-shrink: 0;
 }
 
@@ -232,14 +233,14 @@ const teamLabel = (names?: string[], ids?: string[]) =>
 
 .rank-item--current,
 .rank-item--current:hover {
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
 }
 
 .rank-empty {
   padding: 20px 8px;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #aaaaaa;
+  color: var(--color-text-faint);
   text-align: center;
 }
 
@@ -247,7 +248,7 @@ const teamLabel = (names?: string[], ids?: string[]) =>
   font-family: 'Geist Mono', monospace;
   font-size: 13px;
   font-weight: 700;
-  color: #666666;
+  color: var(--color-text-muted);
   width: 28px;
   flex-shrink: 0;
 }
@@ -256,13 +257,13 @@ const teamLabel = (names?: string[], ids?: string[]) =>
   width: 32px;
   height: 32px;
   border-radius: 999px;
-  background: #1f4d82;
+  background: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Anton', sans-serif;
   font-size: 14px;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: normal;
   flex-shrink: 0;
 }
@@ -285,7 +286,7 @@ const teamLabel = (names?: string[], ids?: string[]) =>
   font-family: 'Inter', sans-serif;
   font-size: 14px;
   font-weight: 600;
-  color: #111111;
+  color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -295,7 +296,7 @@ const teamLabel = (names?: string[], ids?: string[]) =>
   font-family: 'Geist Mono', monospace;
   font-size: 10px;
   font-weight: 700;
-  color: #1f4d82;
+  color: var(--color-primary);
   background: #e8eff8;
   border-radius: 4px;
   padding: 1px 5px;
@@ -305,13 +306,13 @@ const teamLabel = (names?: string[], ids?: string[]) =>
 .rank-record {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 .rank-pts {
   font-family: 'Anton', sans-serif;
   font-size: 18px;
-  color: #1f4d82;
+  color: var(--color-primary);
   font-weight: normal;
   flex-shrink: 0;
 }
@@ -322,7 +323,7 @@ const teamLabel = (names?: string[], ids?: string[]) =>
   transform: translate(0, -50%);
   z-index: 9999;
   background: #1a1a1a;
-  color: #ffffff;
+  color: var(--color-white);
   border-radius: 10px;
   padding: 12px 16px;
   pointer-events: none;
@@ -337,7 +338,7 @@ const teamLabel = (names?: string[], ids?: string[]) =>
 .rank-tooltip-name {
   font-family: 'Anton', sans-serif;
   font-size: 15px;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: normal;
 }
 
@@ -360,7 +361,7 @@ const teamLabel = (names?: string[], ids?: string[]) =>
   font-family: 'Geist Mono', monospace;
   font-size: 12px;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--color-white);
 }
 
 /* ── Upcoming matches ── */
@@ -374,7 +375,7 @@ const teamLabel = (names?: string[], ids?: string[]) =>
 .next-match-title {
   font-family: 'Anton', sans-serif;
   font-size: 16px;
-  color: #111111;
+  color: var(--color-text);
   font-weight: normal;
   margin: 0;
 }
@@ -406,13 +407,13 @@ const teamLabel = (names?: string[], ids?: string[]) =>
   font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 600;
-  color: #111111;
+  color: var(--color-text);
   text-align: center;
 }
 
 .vs-badge {
-  background: #1f4d82;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border-radius: 999px;
   padding: 4px 12px;
   font-family: 'Geist Mono', monospace;
@@ -428,33 +429,33 @@ const teamLabel = (names?: string[], ids?: string[]) =>
 }
 
 .upcoming-meta svg {
-  color: #666666;
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
 .upcoming-meta span {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 .upcoming-club {
   font-family: 'Inter', sans-serif !important;
   font-size: 11px !important;
-  color: #1f4d82 !important;
+  color: var(--color-primary) !important;
   font-weight: 500;
 }
 
 .upcoming-club::before {
   content: '·';
   margin-right: 6px;
-  color: #aaaaaa;
+  color: var(--color-text-faint);
 }
 
 .upcoming-empty {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #aaaaaa;
+  color: var(--color-text-faint);
   text-align: center;
   margin: 4px 0 0;
 }

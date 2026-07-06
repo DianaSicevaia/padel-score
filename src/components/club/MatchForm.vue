@@ -361,21 +361,21 @@ const submit = async () => {
 <style scoped>
 .match-form {
   padding: 16px 20px;
-  background: #fafaf9;
+  background: var(--color-bg-subtle);
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
 .match-form--edit {
-  border-left: 3px solid #1f4d82;
+  border-left: 3px solid var(--color-primary);
 }
 
 .match-form-edit-label {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
   font-weight: 700;
-  color: #1f4d82;
+  color: var(--color-primary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -397,7 +397,7 @@ const submit = async () => {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
   font-weight: 700;
-  color: #666666;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -410,16 +410,16 @@ const submit = async () => {
   padding: 0 8px 4px;
   font-family: 'Anton', sans-serif;
   font-size: 18px;
-  color: #cbccc9;
+  color: var(--color-border);
 }
 
 .btn-doubles-toggle {
   font-family: 'Inter', sans-serif;
   font-size: 11px;
   font-weight: 600;
-  color: #34217c;
+  color: var(--color-accent);
   background: none;
-  border: 1px solid #c8bfee;
+  border: 1px solid var(--color-accent-border);
   border-radius: 6px;
   padding: 2px 8px;
   cursor: pointer;
@@ -428,18 +428,18 @@ const submit = async () => {
 }
 
 .btn-doubles-toggle:hover {
-  background: #ede8ff;
+  background: var(--color-accent-bg);
 }
 
 .player-select {
   height: 36px;
-  border: 1px solid #cbccc9;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 0 10px;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #111111;
-  background: #ffffff;
+  color: var(--color-text);
+  background: var(--color-white);
   outline: none;
   cursor: pointer;
   width: 100%;
@@ -447,14 +447,14 @@ const submit = async () => {
 }
 
 .player-select:focus {
-  border-color: #34217c;
+  border-color: var(--color-accent);
 }
 
 .sched-toggle {
   display: flex;
   gap: 4px;
   padding: 4px;
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
   border-radius: 8px;
   margin: 0 0 4px;
 }
@@ -468,19 +468,19 @@ const submit = async () => {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 500;
-  color: #666666;
+  color: var(--color-text-muted);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .sched-tab--active {
-  background: #ffffff;
-  color: #111111;
+  background: var(--color-white);
+  color: var(--color-text);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .sched-tab:hover:not(.sched-tab--active) {
-  color: #333333;
+  color: var(--color-text-hover);
 }
 
 .match-form-sets {
@@ -500,7 +500,7 @@ const submit = async () => {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
   font-weight: 700;
-  color: #888888;
+  color: var(--color-text-subtle);
   width: 44px;
   text-align: right;
   text-transform: uppercase;
@@ -510,20 +510,20 @@ const submit = async () => {
 .score-input {
   width: 64px;
   height: 48px;
-  border: 1px solid #cbccc9;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 0;
   text-align: center;
   font-family: 'Anton', sans-serif;
   font-size: 26px;
-  color: #111111;
-  background: #ffffff;
+  color: var(--color-text);
+  background: var(--color-white);
   outline: none;
   transition: border-color 0.15s;
 }
 
 .score-input:focus {
-  border-color: #34217c;
+  border-color: var(--color-accent);
 }
 
 .score-input::-webkit-outer-spin-button,
@@ -535,7 +535,7 @@ const submit = async () => {
 .score-colon {
   font-family: 'Anton', sans-serif;
   font-size: 26px;
-  color: #cbccc9;
+  color: var(--color-border);
 }
 
 .btn-remove-set {
@@ -548,7 +548,7 @@ const submit = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #888888;
+  color: var(--color-text-subtle);
   transition:
     background 0.15s,
     color 0.15s;
@@ -556,8 +556,8 @@ const submit = async () => {
 }
 
 .btn-remove-set:hover {
-  background: #e5dcda;
-  color: #8c1c00;
+  background: var(--color-danger-bg-hover);
+  color: var(--color-danger-text);
 }
 
 .set-row-spacer {
@@ -577,11 +577,11 @@ const submit = async () => {
   height: 32px;
   padding: 0 14px;
   background: none;
-  border: 1.5px dashed #cbccc9;
+  border: 1.5px dashed var(--color-border);
   border-radius: 8px;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #666666;
+  color: var(--color-text-muted);
   cursor: pointer;
   margin-top: 2px;
   transition:
@@ -590,19 +590,19 @@ const submit = async () => {
 }
 
 .btn-add-set:hover {
-  border-color: #34217c;
-  color: #34217c;
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .btn-decide-winner {
   height: 32px;
   padding: 0 14px;
   background: none;
-  border: 1.5px dashed #cbccc9;
+  border: 1.5px dashed var(--color-border);
   border-radius: 8px;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #888888;
+  color: var(--color-text-subtle);
   cursor: pointer;
   transition:
     border-color 0.15s,
@@ -610,8 +610,8 @@ const submit = async () => {
 }
 
 .btn-decide-winner:hover {
-  border-color: #888888;
-  color: #333333;
+  border-color: var(--color-text-subtle);
+  color: var(--color-text-hover);
 }
 
 .winner-picker {
@@ -625,7 +625,7 @@ const submit = async () => {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
   font-weight: 700;
-  color: #888888;
+  color: var(--color-text-subtle);
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -634,11 +634,11 @@ const submit = async () => {
   height: 32px;
   padding: 0 14px;
   background: none;
-  border: 1.5px solid #cbccc9;
+  border: 1.5px solid var(--color-border);
   border-radius: 8px;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #444444;
+  color: var(--color-text-strong);
   cursor: pointer;
   max-width: 200px;
   overflow: hidden;
@@ -651,9 +651,9 @@ const submit = async () => {
 }
 
 .btn-team-pick:hover {
-  border-color: #34217c;
+  border-color: var(--color-accent);
   background: rgba(52, 33, 124, 0.05);
-  color: #34217c;
+  color: var(--color-accent);
 }
 
 .manual-winner-display {
@@ -666,28 +666,28 @@ const submit = async () => {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 600;
-  color: #34217c;
+  color: var(--color-accent);
 }
 
 .btn-clear-winner {
   width: 20px;
   height: 20px;
   border-radius: 999px;
-  background: #e7e8e5;
+  background: var(--color-bg-muted);
   border: none;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  color: #666666;
+  color: var(--color-text-muted);
   line-height: 1;
   padding: 0;
   transition: background 0.15s;
 }
 
 .btn-clear-winner:hover {
-  background: #cbccc9;
+  background: var(--color-border);
 }
 
 .sched-datetime {
@@ -701,25 +701,25 @@ const submit = async () => {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
   font-weight: 600;
-  color: #666666;
+  color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .sched-input {
   padding: 7px 10px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--color-border-light);
   border-radius: 8px;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #111111;
-  background: #ffffff;
+  color: var(--color-text);
+  background: var(--color-white);
   outline: none;
   cursor: pointer;
 }
 
 .sched-input:focus {
-  border-color: #1f4d82;
+  border-color: var(--color-primary);
 }
 
 .match-form-footer {
@@ -731,8 +731,8 @@ const submit = async () => {
 .btn-sm-primary {
   height: 36px;
   padding: 0 16px;
-  background: #1f4d82;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 8px;
   font-family: 'Inter', sans-serif;
@@ -745,7 +745,7 @@ const submit = async () => {
 }
 
 .btn-sm-primary:hover:not(:disabled) {
-  background: #2a1a63;
+  background: var(--color-primary-hover);
 }
 
 .btn-sm-primary:disabled {
@@ -760,7 +760,7 @@ const submit = async () => {
   border: none;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #666666;
+  color: var(--color-text-muted);
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
@@ -768,7 +768,7 @@ const submit = async () => {
 }
 
 .btn-sm-ghost:hover:not(:disabled) {
-  color: #111111;
+  color: var(--color-text);
 }
 
 .btn-sm-ghost:disabled {
@@ -779,7 +779,7 @@ const submit = async () => {
 .form-error {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
-  color: #d93c15;
+  color: var(--color-danger);
   margin: 0;
 }
 

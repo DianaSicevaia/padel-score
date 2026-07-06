@@ -57,7 +57,7 @@ const submit = async () => {
 
 <style scoped>
 .create-card {
-  background: #ffffff;
+  background: var(--color-white);
   border-radius: 12px;
   padding: 28px 32px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -70,7 +70,7 @@ const submit = async () => {
 .create-title {
   font-family: 'Anton', sans-serif;
   font-size: 20px;
-  color: #111111;
+  color: var(--color-text);
   font-weight: normal;
   margin: 0;
 }
@@ -84,19 +84,19 @@ const submit = async () => {
 .field-label {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
-  color: #666666;
+  color: var(--color-text-muted);
   letter-spacing: 1px;
 }
 
 .field-input {
   height: 48px;
-  border: 1px solid #cbccc9;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 0 16px;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  color: #111111;
-  background: #f2f3f0;
+  color: var(--color-text);
+  background: var(--color-bg-soft);
   outline: none;
   width: 100%;
   box-sizing: border-box;
@@ -104,13 +104,13 @@ const submit = async () => {
 }
 
 .field-input:focus {
-  border-color: #34217c;
+  border-color: var(--color-accent);
 }
 
 .error-msg {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #d93c15;
+  color: var(--color-danger);
   margin: 0;
 }
 
@@ -124,8 +124,8 @@ const submit = async () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #1f4d82;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 999px;
   padding: 10px 20px;
@@ -138,7 +138,7 @@ const submit = async () => {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #2a1a63;
+  background: var(--color-primary-hover);
 }
 
 .btn-primary:disabled {
@@ -151,14 +151,14 @@ const submit = async () => {
   border: none;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  color: #666666;
+  color: var(--color-text-muted);
   cursor: pointer;
   padding: 10px 0;
   transition: color 0.15s;
 }
 
 .btn-ghost:hover:not(:disabled) {
-  color: #111111;
+  color: var(--color-text);
 }
 
 .btn-ghost:disabled {

@@ -296,7 +296,7 @@ onMounted(async () => {
 .page {
   display: flex;
   height: 100vh;
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
   font-family: 'Inter', sans-serif;
   overflow: hidden;
 }
@@ -333,7 +333,7 @@ onMounted(async () => {
   gap: 10px;
   font-family: 'Geist Mono', monospace;
   font-size: 13px;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 @keyframes spin {
@@ -351,7 +351,7 @@ onMounted(async () => {
   gap: 12px;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 /* ── PAGE HEADER ── */
@@ -376,14 +376,14 @@ onMounted(async () => {
   border: none;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #666666;
+  color: var(--color-text-muted);
   cursor: pointer;
   padding: 0;
   transition: color 0.15s;
 }
 
 .btn-back:hover {
-  color: #34217c;
+  color: var(--color-accent);
 }
 
 .btn-ghost-back {
@@ -394,7 +394,7 @@ onMounted(async () => {
   border: none;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  color: #1f4d82;
+  color: var(--color-primary);
   cursor: pointer;
   padding: 0;
 }
@@ -409,13 +409,13 @@ onMounted(async () => {
   width: 52px;
   height: 52px;
   border-radius: 12px;
-  background: #1f4d82;
+  background: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Anton', sans-serif;
   font-size: 26px;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: normal;
   flex-shrink: 0;
 }
@@ -424,20 +424,20 @@ onMounted(async () => {
   font-family: 'Anton', sans-serif;
   font-size: 26px;
   font-weight: normal;
-  color: #111111;
+  color: var(--color-text);
   margin: 0;
 }
 
 .page-subtitle {
   font-family: 'Geist Mono', monospace;
   font-size: 12px;
-  color: #666666;
+  color: var(--color-text-muted);
   margin: 2px 0 0;
 }
 
 /* ── PANEL ── */
 .panel {
-  background: #ffffff;
+  background: var(--color-white);
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
@@ -458,13 +458,13 @@ onMounted(async () => {
 .panel-title {
   font-family: 'Anton', sans-serif;
   font-size: 18px;
-  color: #111111;
+  color: var(--color-text);
   font-weight: normal;
 }
 
 .count-badge {
-  background: #e7e8e5;
-  color: #666666;
+  background: var(--color-bg-muted);
+  color: var(--color-text-muted);
   font-family: 'Geist Mono', monospace;
   font-size: 12px;
   font-weight: 700;
@@ -474,7 +474,7 @@ onMounted(async () => {
 
 .panel-divider {
   height: 1px;
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
 }
 
 .panel-hdr-btn {
@@ -488,15 +488,15 @@ onMounted(async () => {
   padding: 14px 20px;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #888888;
+  color: var(--color-text-subtle);
 }
 
 /* ── BUTTONS ── */
 .btn-sm-primary {
   height: 36px;
   padding: 0 16px;
-  background: #1f4d82;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 8px;
   font-family: 'Inter', sans-serif;
@@ -509,7 +509,7 @@ onMounted(async () => {
 }
 
 .btn-sm-primary:hover:not(:disabled) {
-  background: #2a1a63;
+  background: var(--color-primary-hover);
 }
 
 .btn-sm-primary:disabled {
@@ -526,7 +526,7 @@ onMounted(async () => {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
   font-weight: 700;
-  color: #1f4d82;
+  color: var(--color-primary);
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
@@ -536,7 +536,7 @@ onMounted(async () => {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
   font-weight: 700;
-  color: #666666;
+  color: var(--color-text-muted);
   letter-spacing: 0.5px;
   text-transform: uppercase;
 }
@@ -554,7 +554,7 @@ onMounted(async () => {
     align-items: center;
     justify-content: space-between;
     padding: 14px 20px;
-    background: #ffffff;
+    background: var(--color-white);
     flex-shrink: 0;
   }
 
@@ -563,7 +563,7 @@ onMounted(async () => {
     border: none;
     padding: 0;
     cursor: pointer;
-    color: #111111;
+    color: var(--color-text);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -578,21 +578,21 @@ onMounted(async () => {
   .m-logo-icon {
     width: 28px;
     height: 28px;
-    background: #1f4d82;
+    background: var(--color-primary);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: 'Anton', sans-serif;
     font-size: 14px;
-    color: #ffffff;
+    color: var(--color-white);
     font-weight: normal;
   }
 
   .m-logo-text {
     font-family: 'Anton', sans-serif;
     font-size: 18px;
-    color: #111111;
+    color: var(--color-text);
     font-weight: normal;
   }
 
@@ -624,7 +624,7 @@ onMounted(async () => {
     align-items: center;
     justify-content: space-around;
     padding: 10px 0;
-    background: #ffffff;
+    background: var(--color-white);
     box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.08);
     flex-shrink: 0;
   }
@@ -639,14 +639,14 @@ onMounted(async () => {
     background: none;
     border: none;
     cursor: pointer;
-    color: #666666;
+    color: var(--color-text-muted);
     font-family: 'Inter', sans-serif;
     font-size: 10px;
     font-weight: 400;
   }
 
   .m-nav-item--active {
-    color: #34217c;
+    color: var(--color-accent);
     font-weight: 600;
   }
 }

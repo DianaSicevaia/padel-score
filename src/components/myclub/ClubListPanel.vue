@@ -58,7 +58,7 @@ const handleDelete = async (club: Club) => {
 
 <style scoped>
 .clubs-panel {
-  background: #ffffff;
+  background: var(--color-white);
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -72,7 +72,7 @@ const handleDelete = async (club: Club) => {
   padding: 16px 20px;
   cursor: pointer;
   transition: background 0.12s;
-  border-bottom: 1px solid #f2f3f0;
+  border-bottom: 1px solid var(--color-bg-soft);
 }
 
 .club-row:last-child {
@@ -87,13 +87,13 @@ const handleDelete = async (club: Club) => {
   width: 42px;
   height: 42px;
   border-radius: 10px;
-  background: #1f4d82;
+  background: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Anton', sans-serif;
   font-size: 20px;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: normal;
   flex-shrink: 0;
 }
@@ -110,13 +110,13 @@ const handleDelete = async (club: Club) => {
   font-family: 'Inter', sans-serif;
   font-size: 15px;
   font-weight: 600;
-  color: #111111;
+  color: var(--color-text);
 }
 
 .club-row-meta {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 .btn-icon {
@@ -129,19 +129,19 @@ const handleDelete = async (club: Club) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666666;
+  color: var(--color-text-muted);
   transition: background 0.15s, color 0.15s;
   flex-shrink: 0;
 }
 
 .btn-icon:hover:not(:disabled) {
-  background: #f2f3f0;
-  color: #111111;
+  background: var(--color-bg-soft);
+  color: var(--color-text);
 }
 
 .btn-icon-danger:hover:not(:disabled) {
-  background: #e5dcda;
-  color: #8c1c00;
+  background: var(--color-danger-bg-hover);
+  color: var(--color-danger-text);
 }
 
 .btn-icon:disabled {

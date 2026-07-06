@@ -2,8 +2,10 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useClubsStore } from '@/stores/clubs'
+import type { Club } from '@/stores/clubs'
 import { useMatchesStore } from '@/stores/matches'
 import type { Match } from '@/stores/matches'
+import { useAuthStore } from '@/stores/auth'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import NewMatchModal from '@/components/dashboard/NewMatchModal.vue'
 import MatchesUpcomingSection from '@/components/matches/MatchesUpcomingSection.vue'
@@ -12,6 +14,7 @@ import MatchesCompletedGroup from '@/components/matches/MatchesCompletedGroup.vu
 const router = useRouter()
 const clubsStore = useClubsStore()
 const matchesStore = useMatchesStore()
+const authStore = useAuthStore()
 
 const showNewMatchModal = ref(false)
 
@@ -25,21 +28,44 @@ const goCreateClub = () => {
   router.push({ path: '/my-club', query: { create: '1' } })
 }
 
+const goCreateStandalone = () => {
+  showNewMatchModal.value = false
+  router.push('/matches/new')
+}
+
 onMounted(async () => {
   if (!clubsStore.clubs.length) await clubsStore.fetchMyClubs()
-  await matchesStore.fetchAllMatches(clubsStore.clubs.map((c) => c.id))
+  const fetches: Promise<unknown>[] = [matchesStore.fetchAllMatches(clubsStore.clubs.map((c) => c.id))]
+  if (authStore.user) fetches.push(matchesStore.fetchStandaloneMatches(authStore.user.uid))
+  await Promise.all(fetches)
 })
 
-const isLoading = computed(() => clubsStore.loading || matchesStore.allLoading)
+const isLoading = computed(
+  () => clubsStore.loading || matchesStore.allLoading || matchesStore.standaloneLoading,
+)
 
-const groupedMatches = computed(() =>
-  clubsStore.clubs
+const standaloneCompleted = computed(() =>
+  matchesStore.standaloneMatches.filter((m) => !!m.winnerTeam),
+)
+
+// Groups (by club, plus one "without a club" group) ordered by the most recent
+// match in each group — allMatches/standaloneMatches are already sorted by
+// createdAt desc, so each group's first match is its most recent one.
+const groupedMatches = computed(() => {
+  const clubGroups = clubsStore.clubs
     .map((club) => ({
-      club,
+      club: club as Club | undefined,
       matches: matchesStore.allMatches.filter((m) => m.clubId === club.id && m.winnerTeam),
     }))
-    .filter((g) => g.matches.length > 0),
-)
+    .filter((g) => g.matches.length > 0)
+
+  const groups = [...clubGroups]
+  if (standaloneCompleted.value.length > 0) {
+    groups.push({ club: undefined, matches: standaloneCompleted.value })
+  }
+
+  return groups.sort((a, b) => (b.matches[0]?.createdAt ?? 0) - (a.matches[0]?.createdAt ?? 0))
+})
 
 const groupedScheduled = computed(() =>
   clubsStore.clubs
@@ -52,7 +78,10 @@ const groupedScheduled = computed(() =>
     .filter((g) => g.matches.length > 0),
 )
 
-const totalCount = computed(() => matchesStore.allMatches.filter((m) => !!m.winnerTeam).length)
+const totalCount = computed(
+  () =>
+    matchesStore.allMatches.filter((m) => !!m.winnerTeam).length + standaloneCompleted.value.length,
+)
 
 const goToClubForPlayNow = (match: Match) => {
   router.push({ path: `/clubs/${match.clubId}`, query: { playNow: match.id } })
@@ -97,7 +126,10 @@ const goToClubForPlayNow = (match: Match) => {
         </div>
 
         <!-- Empty state -->
-        <div v-else-if="groupedMatches.length === 0 && groupedScheduled.length === 0" class="empty-area">
+        <div
+          v-else-if="groupedMatches.length === 0 && groupedScheduled.length === 0"
+          class="empty-area"
+        >
           <div class="empty-state">
             <div class="empty-icon">
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -124,10 +156,10 @@ const goToClubForPlayNow = (match: Match) => {
             @club-click="(id) => router.push(`/clubs/${id}`)"
           />
 
-          <!-- Completed matches by club -->
+          <!-- Completed matches, most recently played club/group first -->
           <MatchesCompletedGroup
             v-for="group in groupedMatches"
-            :key="group.club.id"
+            :key="group.club?.id ?? 'standalone'"
             :club="group.club"
             :matches="group.matches"
             @club-click="(id) => router.push(`/clubs/${id}`)"
@@ -181,6 +213,7 @@ const goToClubForPlayNow = (match: Match) => {
     @close="showNewMatchModal = false"
     @select-club="selectClubForMatch"
     @create-club="goCreateClub"
+    @create-standalone="goCreateStandalone"
   />
 </template>
 
@@ -188,7 +221,7 @@ const goToClubForPlayNow = (match: Match) => {
 .page {
   display: flex;
   height: 100vh;
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
   font-family: 'Inter', sans-serif;
   overflow: hidden;
 }
@@ -235,7 +268,7 @@ const goToClubForPlayNow = (match: Match) => {
   font-family: 'Anton', sans-serif;
   font-size: 28px;
   font-weight: normal;
-  color: #111111;
+  color: var(--color-text);
   margin: 0;
 }
 
@@ -243,8 +276,8 @@ const goToClubForPlayNow = (match: Match) => {
   font-family: 'Geist Mono', monospace;
   font-size: 12px;
   font-weight: 700;
-  color: #666666;
-  background: #e7e8e5;
+  color: var(--color-text-muted);
+  background: var(--color-bg-muted);
   border-radius: 999px;
   padding: 3px 10px;
 }
@@ -256,7 +289,7 @@ const goToClubForPlayNow = (match: Match) => {
   gap: 10px;
   font-family: 'Geist Mono', monospace;
   font-size: 13px;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 @keyframes spin {
@@ -288,17 +321,17 @@ const goToClubForPlayNow = (match: Match) => {
   width: 72px;
   height: 72px;
   border-radius: 999px;
-  background: #e7e8e5;
+  background: var(--color-bg-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 .empty-title {
   font-family: 'Anton', sans-serif;
   font-size: 22px;
-  color: #111111;
+  color: var(--color-text);
   font-weight: normal;
   margin: 0;
 }
@@ -306,7 +339,7 @@ const goToClubForPlayNow = (match: Match) => {
 .empty-desc {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  color: #666666;
+  color: var(--color-text-muted);
   line-height: 1.5;
   margin: 0;
 }
@@ -315,8 +348,8 @@ const goToClubForPlayNow = (match: Match) => {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #1f4d82;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 999px;
   padding: 9px 18px;
@@ -329,7 +362,7 @@ const goToClubForPlayNow = (match: Match) => {
 }
 
 .btn-primary:hover {
-  background: #163b66;
+  background: var(--color-primary-hover);
 }
 
 /* ── MOBILE ── */
@@ -344,7 +377,7 @@ const goToClubForPlayNow = (match: Match) => {
     display: flex;
     align-items: center;
     padding: 14px 20px;
-    background: #ffffff;
+    background: var(--color-white);
     flex-shrink: 0;
   }
 
@@ -357,21 +390,21 @@ const goToClubForPlayNow = (match: Match) => {
   .m-logo-icon {
     width: 28px;
     height: 28px;
-    background: #1f4d82;
+    background: var(--color-primary);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: 'Anton', sans-serif;
     font-size: 14px;
-    color: #ffffff;
+    color: var(--color-white);
     font-weight: normal;
   }
 
   .m-logo-text {
     font-family: 'Anton', sans-serif;
     font-size: 18px;
-    color: #111111;
+    color: var(--color-text);
     font-weight: normal;
   }
 
@@ -385,7 +418,7 @@ const goToClubForPlayNow = (match: Match) => {
     align-items: center;
     justify-content: space-around;
     padding: 10px 0;
-    background: #ffffff;
+    background: var(--color-white);
     box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.08);
     flex-shrink: 0;
   }
@@ -400,14 +433,14 @@ const goToClubForPlayNow = (match: Match) => {
     background: none;
     border: none;
     cursor: pointer;
-    color: #666666;
+    color: var(--color-text-muted);
     font-family: 'Inter', sans-serif;
     font-size: 10px;
     font-weight: 400;
   }
 
   .m-nav-item--active {
-    color: #34217c;
+    color: var(--color-accent);
     font-weight: 600;
   }
 }
