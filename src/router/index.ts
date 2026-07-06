@@ -7,6 +7,7 @@ import MyClubView from '../views/MyClubView.vue'
 import ClubView from '../views/ClubView.vue'
 import SettingsView from '../views/SettingsView.vue'
 import MatchesView from '../views/MatchesView.vue'
+import QuickMatchView from '../views/QuickMatchView.vue'
 import { useAuthStore } from '@/stores/auth'
 import { pinia } from '@/stores'
 
@@ -59,6 +60,12 @@ const router = createRouter({
       path: '/matches',
       name: 'matches',
       component: MatchesView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/matches/new',
+      name: 'quick-match',
+      component: QuickMatchView,
       meta: { requiresAuth: true },
     },
   ],

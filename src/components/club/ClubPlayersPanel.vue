@@ -575,7 +575,7 @@ const handleDelete = async (p: Player) => {
 
 <style scoped>
 .panel {
-  background: #ffffff;
+  background: var(--color-white);
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
@@ -597,13 +597,13 @@ const handleDelete = async (p: Player) => {
 .panel-title {
   font-family: 'Anton', sans-serif;
   font-size: 18px;
-  color: #111111;
+  color: var(--color-text);
   font-weight: normal;
 }
 
 .count-badge {
-  background: #e7e8e5;
-  color: #666666;
+  background: var(--color-bg-muted);
+  color: var(--color-text-muted);
   font-family: 'Geist Mono', monospace;
   font-size: 12px;
   font-weight: 700;
@@ -620,7 +620,7 @@ const handleDelete = async (p: Player) => {
 
 .panel-divider {
   height: 1px;
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
 }
 
 /* ── Player rows ── */
@@ -633,39 +633,39 @@ const handleDelete = async (p: Player) => {
 }
 
 .player-row:hover {
-  background: #fafaf9;
+  background: var(--color-bg-subtle);
 }
 
 .player-row--edit {
-  background: #fafaf9;
+  background: var(--color-bg-subtle);
   padding: 10px 20px;
 }
 
 .player-row--edit:hover {
-  background: #fafaf9;
+  background: var(--color-bg-subtle);
 }
 
 .player-avatar {
   width: 36px;
   height: 36px;
   border-radius: 999px;
-  background: #1f4d82;
+  background: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: 'Anton', sans-serif;
   font-size: 16px;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: normal;
   flex-shrink: 0;
 }
 
 .player-avatar--me {
-  background: #34217c;
+  background: var(--color-accent);
 }
 
 .player-avatar--muted {
-  background: #aaaaaa;
+  background: var(--color-text-faint);
 }
 
 .player-info {
@@ -686,22 +686,22 @@ const handleDelete = async (p: Player) => {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
   font-weight: 600;
-  color: #111111;
+  color: var(--color-text);
 }
 
 .you-badge {
   font-family: 'Inter', sans-serif;
   font-size: 10px;
   font-weight: 700;
-  color: #34217c;
-  background: #ede8ff;
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
   border-radius: 4px;
   padding: 1px 5px;
   letter-spacing: 0.03em;
 }
 
 .linked-badge {
-  color: #888888;
+  color: var(--color-text-subtle);
   display: flex;
   align-items: center;
 }
@@ -709,7 +709,7 @@ const handleDelete = async (p: Player) => {
 .player-stats {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 .player-actions {
@@ -724,7 +724,7 @@ const handleDelete = async (p: Player) => {
   align-items: center;
   gap: 8px;
   padding: 10px 20px;
-  background: #fafaf9;
+  background: var(--color-bg-subtle);
 }
 
 .add-row--email {
@@ -734,14 +734,14 @@ const handleDelete = async (p: Player) => {
 .add-error {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
-  color: #d93c15;
+  color: var(--color-danger);
   padding: 0 20px 8px;
   margin: 0;
 }
 
 /* ── Select picker ── */
 .select-picker {
-  background: #fafaf9;
+  background: var(--color-bg-subtle);
 }
 
 .select-toolbar {
@@ -755,7 +755,7 @@ const handleDelete = async (p: Player) => {
   padding: 12px 20px;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #888888;
+  color: var(--color-text-subtle);
   text-align: center;
 }
 
@@ -769,7 +769,7 @@ const handleDelete = async (p: Player) => {
 }
 
 .select-player-row:hover:not(.select-player-row--taken) {
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
 }
 
 .select-player-row--taken {
@@ -786,7 +786,7 @@ const handleDelete = async (p: Player) => {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
   font-weight: 600;
-  color: #1f4d82;
+  color: var(--color-primary);
   opacity: 0;
   transition: opacity 0.15s;
   flex-shrink: 0;
@@ -797,8 +797,8 @@ const handleDelete = async (p: Player) => {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
   font-weight: 700;
-  color: #666666;
-  background: #e7e8e5;
+  color: var(--color-text-muted);
+  background: var(--color-bg-muted);
   border-radius: 999px;
   padding: 2px 10px;
   flex-shrink: 0;
@@ -822,8 +822,8 @@ const handleDelete = async (p: Player) => {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  background: #ffffff;
-  border: 1px solid #e7e8e5;
+  background: var(--color-white);
+  border: 1px solid var(--color-bg-muted);
   border-radius: 10px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
   min-width: 190px;
@@ -843,21 +843,21 @@ const handleDelete = async (p: Player) => {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 500;
-  color: #111111;
+  color: var(--color-text);
   text-align: left;
   transition: background 0.1s;
 }
 
 .add-menu-item + .add-menu-item {
-  border-top: 1px solid #f2f3f0;
+  border-top: 1px solid var(--color-bg-soft);
 }
 
 .add-menu-item:hover {
-  background: #f7f7f5;
+  background: var(--color-bg-hover);
 }
 
 .add-menu-item svg {
-  color: #666666;
+  color: var(--color-text-muted);
   flex-shrink: 0;
 }
 
@@ -883,17 +883,17 @@ const handleDelete = async (p: Player) => {
   width: 72px;
   height: 72px;
   border-radius: 999px;
-  background: #e7e8e5;
+  background: var(--color-bg-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 .empty-title {
   font-family: 'Anton', sans-serif;
   font-size: 22px;
-  color: #111111;
+  color: var(--color-text);
   font-weight: normal;
   margin: 0;
 }
@@ -901,7 +901,7 @@ const handleDelete = async (p: Player) => {
 .empty-desc {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  color: #666666;
+  color: var(--color-text-muted);
   line-height: 1.5;
   margin: 0;
 }
@@ -911,8 +911,8 @@ const handleDelete = async (p: Player) => {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #1f4d82;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 999px;
   padding: 10px 20px;
@@ -926,7 +926,7 @@ const handleDelete = async (p: Player) => {
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: #2a1a63;
+  background: var(--color-primary-hover);
 }
 
 .btn-outline {
@@ -934,8 +934,8 @@ const handleDelete = async (p: Player) => {
   align-items: center;
   gap: 8px;
   background: transparent;
-  color: #34217c;
-  border: 1.5px solid #cbccc9;
+  color: var(--color-accent);
+  border: 1.5px solid var(--color-border);
   border-radius: 999px;
   padding: 9px 18px;
   font-family: 'Inter', sans-serif;
@@ -950,15 +950,15 @@ const handleDelete = async (p: Player) => {
 }
 
 .btn-outline:hover {
-  border-color: #34217c;
+  border-color: var(--color-accent);
   background: rgba(52, 33, 124, 0.04);
 }
 
 .btn-sm-primary {
   height: 36px;
   padding: 0 16px;
-  background: #1f4d82;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 8px;
   font-family: 'Inter', sans-serif;
@@ -971,7 +971,7 @@ const handleDelete = async (p: Player) => {
 }
 
 .btn-sm-primary:hover:not(:disabled) {
-  background: #2a1a63;
+  background: var(--color-primary-hover);
 }
 
 .btn-sm-primary:disabled {
@@ -986,7 +986,7 @@ const handleDelete = async (p: Player) => {
   border: none;
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #666666;
+  color: var(--color-text-muted);
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
@@ -994,7 +994,7 @@ const handleDelete = async (p: Player) => {
 }
 
 .btn-sm-ghost:hover:not(:disabled) {
-  color: #111111;
+  color: var(--color-text);
 }
 
 .btn-sm-ghost:disabled {
@@ -1012,7 +1012,7 @@ const handleDelete = async (p: Player) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666666;
+  color: var(--color-text-muted);
   transition:
     background 0.15s,
     color 0.15s;
@@ -1020,13 +1020,13 @@ const handleDelete = async (p: Player) => {
 }
 
 .btn-icon:hover:not(:disabled) {
-  background: #f2f3f0;
-  color: #111111;
+  background: var(--color-bg-soft);
+  color: var(--color-text);
 }
 
 .btn-icon-danger:hover:not(:disabled) {
-  background: #e5dcda;
-  color: #8c1c00;
+  background: var(--color-danger-bg-hover);
+  color: var(--color-danger-text);
 }
 
 .btn-icon-confirm:hover:not(:disabled) {
@@ -1042,20 +1042,20 @@ const handleDelete = async (p: Player) => {
 .field-input-sm {
   flex: 1;
   height: 36px;
-  border: 1px solid #cbccc9;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 0 12px;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  color: #111111;
-  background: #ffffff;
+  color: var(--color-text);
+  background: var(--color-white);
   outline: none;
   min-width: 0;
   transition: border-color 0.15s;
 }
 
 .field-input-sm:focus {
-  border-color: #34217c;
+  border-color: var(--color-accent);
 }
 
 @media (max-width: 768px) {

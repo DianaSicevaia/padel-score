@@ -167,14 +167,14 @@ const loginWithGoogle = async () => {
   justify-content: center;
   font-family: 'Anton', sans-serif;
   font-size: 22px;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: normal;
 }
 
 .logo-text {
   font-family: 'Anton', sans-serif;
   font-size: 24px;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: normal;
 }
 
@@ -187,7 +187,7 @@ const loginWithGoogle = async () => {
 .tagline {
   font-family: 'Anton', sans-serif;
   font-size: 48px;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: normal;
   line-height: 1.1;
   margin: 0;
@@ -210,7 +210,7 @@ const loginWithGoogle = async () => {
 
 .form-panel {
   flex: 1;
-  background: #ffffff;
+  background: var(--color-white);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -234,14 +234,14 @@ const loginWithGoogle = async () => {
   font-family: 'Anton', sans-serif;
   font-size: 32px;
   font-weight: normal;
-  color: #111111;
+  color: var(--color-text);
   margin: 0;
 }
 
 .form-subtitle {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  color: #666666;
+  color: var(--color-text-muted);
   margin: 0;
 }
 
@@ -254,29 +254,29 @@ const loginWithGoogle = async () => {
 .field-label {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 .field-input {
   height: 48px;
-  border: 1px solid #cbccc9;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 0 16px;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  color: #111111;
-  background: #f2f3f0;
+  color: var(--color-text);
+  background: var(--color-bg-soft);
   outline: none;
   width: 100%;
   box-sizing: border-box;
 }
 
 .field-input::placeholder {
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 .field-input:focus {
-  border-color: #1f4d82;
+  border-color: var(--color-primary);
 }
 
 .password-label-row {
@@ -288,12 +288,12 @@ const loginWithGoogle = async () => {
 .forgot-link {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
-  color: #1f4d82;
+  color: var(--color-primary);
   text-decoration: none;
 }
 .forgot-link:hover,
 .forgot-link:focus {
-  color: #34217c;
+  color: var(--color-accent);
 }
 
 .sign-in-section {
@@ -305,13 +305,13 @@ const loginWithGoogle = async () => {
 .error-message {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #d93c15;
+  color: var(--color-danger);
 }
 
 .sign-in-btn {
   height: 48px;
-  background: #1f4d82;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 999px;
   font-family: 'Inter', sans-serif;
@@ -323,7 +323,7 @@ const loginWithGoogle = async () => {
 }
 
 .sign-in-btn:hover {
-  background: #2a1a63;
+  background: var(--color-primary-hover);
 }
 
 .divider-row {
@@ -335,13 +335,13 @@ const loginWithGoogle = async () => {
 .divider-line {
   flex: 1;
   height: 1px;
-  background: #cbccc9;
+  background: var(--color-border);
 }
 
 .divider-text {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 .social-buttons {
@@ -356,18 +356,18 @@ const loginWithGoogle = async () => {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px solid #cbccc9;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--color-white);
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #111111;
+  color: var(--color-text);
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .social-btn:hover {
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
 }
 
 .signup-row {
@@ -379,14 +379,14 @@ const loginWithGoogle = async () => {
 .signup-text {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 .signup-link {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 600;
-  color: #1f4d82;
+  color: var(--color-primary);
   text-decoration: none;
 }
 
@@ -474,7 +474,7 @@ const loginWithGoogle = async () => {
     display: block;
     font-family: 'Inter', sans-serif;
     font-size: 13px;
-    color: #1f4d82;
+    color: var(--color-primary);
     text-decoration: none;
   }
 

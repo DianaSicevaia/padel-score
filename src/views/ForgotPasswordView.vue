@@ -178,14 +178,14 @@ const submit = async () => {
   justify-content: center;
   font-family: 'Anton', sans-serif;
   font-size: 22px;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: normal;
 }
 
 .logo-text {
   font-family: 'Anton', sans-serif;
   font-size: 24px;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: normal;
 }
 
@@ -208,7 +208,7 @@ const submit = async () => {
 .tagline {
   font-family: 'Anton', sans-serif;
   font-size: 44px;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: normal;
   line-height: 1.05;
   margin: 0;
@@ -252,7 +252,7 @@ const submit = async () => {
 /* ── Right panel ── */
 .form-panel {
   flex: 1;
-  background: #ffffff;
+  background: var(--color-white);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -276,20 +276,20 @@ const submit = async () => {
   font-family: 'Anton', sans-serif;
   font-size: 32px;
   font-weight: normal;
-  color: #111111;
+  color: var(--color-text);
   margin: 0;
 }
 
 .form-subtitle {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  color: #666666;
+  color: var(--color-text-muted);
   margin: 0;
   line-height: 1.5;
 }
 
 .form-subtitle strong {
-  color: #111111;
+  color: var(--color-text);
   font-weight: 600;
 }
 
@@ -303,7 +303,7 @@ const submit = async () => {
 .field-label {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
-  color: #666666;
+  color: var(--color-text-muted);
   letter-spacing: 0.5px;
 }
 
@@ -311,20 +311,20 @@ const submit = async () => {
   display: flex;
   align-items: center;
   gap: 10px;
-  border: 1px solid #cbccc9;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background: #ffffff;
+  background: var(--color-white);
   padding: 12px 14px;
   box-sizing: border-box;
 }
 
 .input-wrapper:focus-within {
-  border-color: #942e29;
+  border-color: var(--color-danger-strong);
 }
 
 .input-icon {
   flex-shrink: 0;
-  color: #666666;
+  color: var(--color-text-muted);
 }
 
 .field-input {
@@ -334,7 +334,7 @@ const submit = async () => {
   background: transparent;
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  color: #111111;
+  color: var(--color-text);
   min-width: 0;
 }
 
@@ -352,14 +352,14 @@ const submit = async () => {
 .error-message {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #d93c15;
+  color: var(--color-danger);
   margin: 0;
 }
 
 .submit-btn {
   width: 100%;
-  background: #942e29;
-  color: #ffffff;
+  background: var(--color-danger-strong);
+  color: var(--color-white);
   border: none;
   border-radius: 999px;
   padding: 14px 0;
@@ -389,7 +389,7 @@ const submit = async () => {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
   font-weight: 600;
-  color: #942e29;
+  color: var(--color-danger-strong);
   text-decoration: none;
 }
 
@@ -413,7 +413,7 @@ const submit = async () => {
 .success-hint {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
-  color: #888888;
+  color: var(--color-text-subtle);
   margin: 0;
 }
 

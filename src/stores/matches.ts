@@ -12,6 +12,7 @@ import {
 import { db } from '@/firebase'
 import { usePlayersStore } from '@/stores/players'
 import type { Player } from '@/stores/players'
+import { useUsersStore, START_RATING as USER_START_RATING } from '@/stores/users'
 
 export interface MatchPlayerSnapshot {
   playerId: string
@@ -26,9 +27,14 @@ export interface MatchSet {
   scoreB: number
 }
 
+export interface StandaloneParticipant {
+  uid?: string
+  name: string
+}
+
 export interface Match {
   id: string
-  clubId: string
+  clubId?: string
   teamA: string[]
   teamB: string[]
   teamANames?: string[]
@@ -40,13 +46,16 @@ export interface Match {
   scheduledAt?: number
   createdAt: number
   before?: MatchPlayerSnapshot[]
+  participantUids?: string[]
 }
 
 interface MatchesState {
   matches: Match[]
   allMatches: Match[]
+  standaloneMatches: Match[]
   loading: boolean
   allLoading: boolean
+  standaloneLoading: boolean
 }
 
 const K = 32
@@ -94,8 +103,10 @@ export const useMatchesStore = defineStore('matches', {
   state: (): MatchesState => ({
     matches: [],
     allMatches: [],
+    standaloneMatches: [],
     loading: false,
     allLoading: false,
+    standaloneLoading: false,
   }),
 
   actions: {
@@ -129,6 +140,110 @@ export const useMatchesStore = defineStore('matches', {
       } finally {
         this.allLoading = false
       }
+    },
+
+    async fetchStandaloneMatches(uid: string) {
+      this.standaloneLoading = true
+      this.standaloneMatches = []
+      try {
+        const q = query(collection(db, 'matches'), where('participantUids', 'array-contains', uid))
+        const snapshot = await getDocs(q)
+        this.standaloneMatches = snapshot.docs
+          .map((d) => ({ id: d.id, ...(d.data() as Omit<Match, 'id'>) }))
+          .sort((a, b) => b.createdAt - a.createdAt)
+      } finally {
+        this.standaloneLoading = false
+      }
+    },
+
+    async createStandaloneMatch(
+      teamA: StandaloneParticipant[],
+      teamB: StandaloneParticipant[],
+      sets: MatchSet[],
+      creatorUid: string,
+      winnerOverride?: 'A' | 'B',
+    ) {
+      const usersStore = useUsersStore()
+      const allParticipants = [...teamA, ...teamB]
+      const uids = allParticipants.map((p) => p.uid).filter((u): u is string => !!u)
+      const userProfiles = await usersStore.getUsersByUid(uids)
+      const ratingOf = (p: StandaloneParticipant) =>
+        (p.uid ? userProfiles.find((u) => u.uid === p.uid)?.rating : undefined) ?? USER_START_RATING
+
+      const genGuestId = () => `guest-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`
+      const idOf = (p: StandaloneParticipant) => p.uid ?? genGuestId()
+
+      const teamAIds = teamA.map(idOf)
+      const teamBIds = teamB.map(idOf)
+      const teamANames = teamA.map((p) => p.name)
+      const teamBNames = teamB.map((p) => p.name)
+
+      const avgRating = (arr: StandaloneParticipant[]) =>
+        arr.reduce((s, p) => s + ratingOf(p), 0) / arr.length
+      const avgA = avgRating(teamA)
+      const avgB = avgRating(teamB)
+      const scoreA = sets.filter((s) => s.scoreA > s.scoreB).length
+      const scoreB = sets.filter((s) => s.scoreB > s.scoreA).length
+      const winnerTeam: 'A' | 'B' = winnerOverride ?? (scoreA > scoreB ? 'A' : 'B')
+
+      const toPseudoPlayer = (p: StandaloneParticipant): Player => {
+        const profile = p.uid ? userProfiles.find((u) => u.uid === p.uid) : undefined
+        return {
+          id: p.uid ?? '',
+          clubId: '',
+          name: p.name,
+          rating: profile?.rating ?? USER_START_RATING,
+          matchesPlayed: profile?.matchesPlayed ?? 0,
+          wins: profile?.wins ?? 0,
+          losses: profile?.losses ?? 0,
+          createdAt: 0,
+        }
+      }
+
+      const registeredA = teamA.filter((p) => p.uid).map(toPseudoPlayer)
+      const registeredB = teamB.filter((p) => p.uid).map(toPseudoPlayer)
+
+      const statsUpdates = [
+        ...computeEloUpdates(registeredA, avgA, avgB, winnerTeam === 'A'),
+        ...computeEloUpdates(registeredB, avgB, avgA, winnerTeam === 'B'),
+      ]
+
+      const before: MatchPlayerSnapshot[] = [...registeredA, ...registeredB].map((p) => ({
+        playerId: p.id,
+        rating: p.rating,
+        matchesPlayed: p.matchesPlayed,
+        wins: p.wins,
+        losses: p.losses,
+      }))
+
+      const participantUids = Array.from(new Set([...uids, creatorUid]))
+
+      const now = Date.now()
+      const matchData: Omit<Match, 'id'> = {
+        teamA: teamAIds,
+        teamB: teamBIds,
+        teamANames,
+        teamBNames,
+        sets,
+        scoreA,
+        scoreB,
+        winnerTeam,
+        createdAt: now,
+        before,
+        participantUids,
+      }
+
+      const docRef = await addDoc(collection(db, 'matches'), matchData)
+      this.standaloneMatches.unshift({ id: docRef.id, ...matchData })
+
+      const uidUpdates = statsUpdates.map((u) => ({
+        uid: u.id,
+        rating: u.rating,
+        matchesPlayed: u.matchesPlayed,
+        wins: u.wins,
+        losses: u.losses,
+      }))
+      if (uidUpdates.length) await usersStore.applyMatchResult(uidUpdates)
     },
 
     async createMatch(

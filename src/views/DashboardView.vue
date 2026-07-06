@@ -46,6 +46,11 @@ const goCreateClub = () => {
   router.push({ path: '/my-club', query: { create: '1' } })
 }
 
+const goCreateStandalone = () => {
+  showNewMatchModal.value = false
+  router.push('/matches/new')
+}
+
 // ── Match data ─────────────────────────────────────
 const myPlayers = ref<Player[]>([])
 const allClubPlayers = ref<Player[]>([])
@@ -329,7 +334,7 @@ const stats = computed(() => [
           :rankEntries="rankEntries"
           :upcomingMatches="myUpcomingMatches"
           :clubs="clubsStore.clubs"
-          @match-click="(clubId) => router.push(`/clubs/${clubId}`)"
+          @match-click="(clubId) => clubId && router.push(`/clubs/${clubId}`)"
         />
       </div>
 
@@ -379,6 +384,7 @@ const stats = computed(() => [
     @close="showNewMatchModal = false"
     @select-club="selectClubForMatch"
     @create-club="goCreateClub"
+    @create-standalone="goCreateStandalone"
   />
 </template>
 
@@ -387,7 +393,7 @@ const stats = computed(() => [
 .dashboard {
   display: flex;
   height: 100vh;
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
   font-family: 'Inter', sans-serif;
   overflow: hidden;
 }
@@ -432,14 +438,14 @@ const stats = computed(() => [
   font-family: 'Anton', sans-serif;
   font-size: 28px;
   font-weight: normal;
-  color: #111111;
+  color: var(--color-text);
   margin: 0;
 }
 
 .page-subtitle {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
-  color: #666666;
+  color: var(--color-text-muted);
   margin: 0;
 }
 
@@ -454,8 +460,8 @@ const stats = computed(() => [
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #1f4d82;
-  color: #ffffff;
+  background: var(--color-primary);
+  color: var(--color-white);
   border: none;
   border-radius: 999px;
   padding: 10px 20px;
@@ -467,27 +473,27 @@ const stats = computed(() => [
 }
 
 .btn-primary:hover {
-  background: #2a1a63;
+  background: var(--color-primary-hover);
 }
 
 .btn-notif {
   width: 40px;
   height: 40px;
   border-radius: 999px;
-  background: #ffffff;
+  background: var(--color-white);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #666666;
+  color: var(--color-text-muted);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   transition: background 0.15s;
   flex-shrink: 0;
 }
 
 .btn-notif:hover {
-  background: #f2f3f0;
+  background: var(--color-bg-soft);
 }
 
 /* Mobile welcome - hidden on desktop */
@@ -520,7 +526,7 @@ const stats = computed(() => [
     align-items: center;
     justify-content: space-between;
     padding: 14px 20px;
-    background: #ffffff;
+    background: var(--color-white);
     flex-shrink: 0;
   }
 
@@ -529,7 +535,7 @@ const stats = computed(() => [
     border: none;
     padding: 0;
     cursor: pointer;
-    color: #111111;
+    color: var(--color-text);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -544,21 +550,21 @@ const stats = computed(() => [
   .m-logo-icon {
     width: 28px;
     height: 28px;
-    background: #1f4d82;
+    background: var(--color-primary);
     border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: 'Anton', sans-serif;
     font-size: 14px;
-    color: #ffffff;
+    color: var(--color-white);
     font-weight: normal;
   }
 
   .m-logo-text {
     font-family: 'Anton', sans-serif;
     font-size: 18px;
-    color: #111111;
+    color: var(--color-text);
     font-weight: normal;
   }
 
@@ -589,7 +595,7 @@ const stats = computed(() => [
   .m-welcome-sub {
     font-family: 'Inter', sans-serif;
     font-size: 12px;
-    color: #666666;
+    color: var(--color-text-muted);
     margin: 0;
   }
 
@@ -597,14 +603,14 @@ const stats = computed(() => [
     width: 40px;
     height: 40px;
     border-radius: 999px;
-    background: #e7e8e5;
+    background: var(--color-bg-muted);
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: 'Inter', sans-serif;
     font-size: 14px;
     font-weight: 600;
-    color: #111111;
+    color: var(--color-text);
     flex-shrink: 0;
   }
 
@@ -614,8 +620,8 @@ const stats = computed(() => [
     justify-content: center;
     gap: 8px;
     width: 100%;
-    background: #1f4d82;
-    color: #ffffff;
+    background: var(--color-primary);
+    color: var(--color-white);
     border: none;
     border-radius: 999px;
     padding: 12px 0;
@@ -628,7 +634,7 @@ const stats = computed(() => [
   }
 
   .m-btn-primary:hover {
-    background: #2a1a63;
+    background: var(--color-primary-hover);
   }
 
   .m-bottom-nav {
@@ -636,7 +642,7 @@ const stats = computed(() => [
     align-items: center;
     justify-content: space-around;
     padding: 10px 0;
-    background: #ffffff;
+    background: var(--color-white);
     box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.08);
     flex-shrink: 0;
   }
@@ -651,14 +657,14 @@ const stats = computed(() => [
     background: none;
     border: none;
     cursor: pointer;
-    color: #666666;
+    color: var(--color-text-muted);
     font-family: 'Inter', sans-serif;
     font-size: 10px;
     font-weight: 400;
   }
 
   .m-nav-item--active {
-    color: #34217c;
+    color: var(--color-accent);
     font-weight: 600;
   }
 }
