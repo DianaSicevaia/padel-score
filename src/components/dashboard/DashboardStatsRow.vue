@@ -30,6 +30,7 @@ defineProps<{
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
 }
 
@@ -61,6 +62,13 @@ defineProps<{
   padding-bottom: 3px;
 }
 
+@media (max-width: 1100px) {
+  .stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+}
+
 @media (max-width: 768px) {
   .stats-row {
     grid-template-columns: repeat(2, 1fr);
@@ -77,6 +85,12 @@ defineProps<{
 
   .stat-change {
     font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -1,12 +1,42 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
+import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import QuickMatchForm from '@/components/quickmatch/QuickMatchForm.vue'
+import { useMatchesStore } from '@/stores/matches'
+import type { StandaloneParticipant } from '@/stores/matches'
+import { useAuthStore } from '@/stores/auth'
 
+const route = useRoute()
 const router = useRouter()
+const matchesStore = useMatchesStore()
+const authStore = useAuthStore()
 
 const goBack = () => router.push('/matches')
 const onSaved = () => router.push('/matches')
+
+const initialTeamA = ref<StandaloneParticipant[]>([])
+const initialTeamB = ref<StandaloneParticipant[]>([])
+
+const toParticipants = (ids: string[], names?: string[]): StandaloneParticipant[] =>
+  ids.map((id, i) => ({
+    ...(id.startsWith('guest-') ? {} : { uid: id }),
+    name: names?.[i] ?? id,
+  }))
+
+onMounted(async () => {
+  const matchId = route.query.playNow as string | undefined
+  if (!matchId) return
+  if (!matchesStore.standaloneMatches.length && authStore.user) {
+    await matchesStore.fetchStandaloneMatches(authStore.user.uid)
+  }
+  const match = matchesStore.standaloneMatches.find((m) => m.id === matchId)
+  if (!match) return
+  await matchesStore.cancelScheduledMatch(match.id)
+  initialTeamA.value = toParticipants(match.teamA, match.teamANames)
+  initialTeamB.value = toParticipants(match.teamB, match.teamBNames)
+  router.replace({ path: '/matches/new' })
+})
 </script>
 
 <template>
@@ -27,7 +57,12 @@ const onSaved = () => router.push('/matches')
         </div>
 
         <div class="panel">
-          <QuickMatchForm @cancel="goBack" @saved="onSaved" />
+          <QuickMatchForm
+            :initialTeamA="initialTeamA"
+            :initialTeamB="initialTeamB"
+            @cancel="goBack"
+            @saved="onSaved"
+          />
         </div>
       </div>
     </div>

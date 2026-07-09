@@ -438,6 +438,7 @@ const handleDelete = async (p: Player) => {
                 <circle cx="12" cy="7" r="4" />
               </svg>
             </span>
+            <span v-if="player.status === 'requested'" class="requested-badge">requested</span>
           </div>
           <span v-if="playerStats(player)" class="player-stats">{{ playerStats(player) }}</span>
         </div>
@@ -704,6 +705,18 @@ const handleDelete = async (p: Player) => {
   color: var(--color-text-subtle);
   display: flex;
   align-items: center;
+}
+
+.requested-badge {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-bg-muted);
+  border-radius: 4px;
+  padding: 1px 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .player-stats {

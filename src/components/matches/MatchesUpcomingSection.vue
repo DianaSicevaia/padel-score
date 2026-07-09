@@ -2,8 +2,9 @@
 import type { Match } from '@/stores/matches'
 import type { Club } from '@/stores/clubs'
 
-defineProps<{
-  groups: { club: Club; matches: Match[] }[]
+const props = defineProps<{
+  groups: { club?: Club; matches: Match[] }[]
+  currentUid: string | null
 }>()
 
 const emit = defineEmits<{
@@ -15,6 +16,8 @@ const teamDisplay = (m: Match, side: 'A' | 'B') => {
   const names = side === 'A' ? m.teamANames : m.teamBNames
   return names?.join(' & ') ?? (side === 'A' ? m.teamA : m.teamB).join(' & ')
 }
+
+const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUid
 </script>
 
 <template>
@@ -29,10 +32,16 @@ const teamDisplay = (m: Match, side: 'A' | 'B') => {
       Upcoming
     </div>
 
-    <div v-for="group in groups" :key="group.club.id" class="club-group">
+    <div v-for="group in groups" :key="group.club?.id ?? 'standalone'" class="club-group">
       <div class="group-hdr">
-        <div class="club-avatar">{{ group.club.name[0]?.toUpperCase() }}</div>
-        <span class="group-club-name" @click="emit('club-click', group.club.id)">{{ group.club.name }}</span>
+        <div v-if="group.club" class="club-avatar">{{ group.club.name[0]?.toUpperCase() }}</div>
+        <div v-else class="club-avatar club-avatar--none">⚡</div>
+        <span
+          class="group-club-name"
+          :class="{ 'group-club-name--static': !group.club }"
+          @click="group.club && emit('club-click', group.club.id)"
+          >{{ group.club ? group.club.name : 'Without a club' }}</span
+        >
         <span class="count-badge">{{ group.matches.length }}</span>
       </div>
       <div class="panel">
@@ -50,7 +59,9 @@ const teamDisplay = (m: Match, side: 'A' | 'B') => {
                 ·
                 {{ new Date(match.scheduledAt!).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) }}
               </span>
-              <button class="btn-play-now" @click="emit('play-now', match)">▶ Play now</button>
+              <span v-if="match.status === 'pending'" class="pending-badge">Awaiting confirmation</span>
+              <button v-else-if="canPlayNow(match)" class="btn-play-now" @click="emit('play-now', match)">▶ Play now</button>
+              <span v-else class="pending-badge">Organizer only</span>
             </div>
           </div>
         </template>
@@ -117,6 +128,18 @@ const teamDisplay = (m: Match, side: 'A' | 'B') => {
 
 .group-club-name:hover {
   color: var(--color-accent);
+}
+
+.group-club-name--static {
+  cursor: default;
+}
+
+.group-club-name--static:hover {
+  color: var(--color-text);
+}
+
+.club-avatar--none {
+  background: var(--color-text-muted);
 }
 
 .count-badge {
@@ -201,6 +224,17 @@ const teamDisplay = (m: Match, side: 'A' | 'B') => {
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s;
+}
+
+.pending-badge {
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-bg-muted);
+  border-radius: 999px;
+  padding: 4px 10px;
+  white-space: nowrap;
 }
 
 .btn-play-now:hover {

@@ -7,6 +7,7 @@ import SidebarNav from '@/components/layout/SidebarNav.vue'
 import { useMatchesStore } from '@/stores/matches'
 import type { Match } from '@/stores/matches'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationsStore } from '@/stores/notifications'
 import ClubPlayersPanel from '@/components/club/ClubPlayersPanel.vue'
 import MatchForm from '@/components/club/MatchForm.vue'
 import MatchRow from '@/components/club/MatchRow.vue'
@@ -18,6 +19,7 @@ const clubsStore = useClubsStore()
 const playersStore = usePlayersStore()
 const matchesStore = useMatchesStore()
 const authStore = useAuthStore()
+const notificationsStore = useNotificationsStore()
 
 const currentUid = computed(() => authStore.user?.uid ?? null)
 const myPlayer = computed(() =>
@@ -119,11 +121,12 @@ onMounted(async () => {
           <div class="m-logo-icon">P</div>
           <span class="m-logo-text">Padel Club</span>
         </div>
-        <button class="m-topbar-btn" aria-label="Notifications">
+        <button class="m-topbar-btn" aria-label="Notifications" @click="router.push('/notifications')">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
           </svg>
+          <span v-if="notificationsStore.unreadCount > 0" class="notif-dot"></span>
         </button>
       </header>
 
@@ -219,6 +222,7 @@ onMounted(async () => {
                 <ScheduledMatchRow
                   :match="match"
                   :players="playersStore.players"
+                  :currentUid="currentUid"
                   @play-now="handlePlayNow"
                   @cancel-match="handleCancelSchedule"
                 />
@@ -559,6 +563,7 @@ onMounted(async () => {
   }
 
   .m-topbar-btn {
+    position: relative;
     background: none;
     border: none;
     padding: 0;
@@ -567,6 +572,17 @@ onMounted(async () => {
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .notif-dot {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--color-danger);
+    border: 1.5px solid var(--color-white);
   }
 
   .m-topbar-logo {

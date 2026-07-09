@@ -5,6 +5,11 @@ import type { StandaloneParticipant } from '@/stores/matches'
 import { useAuthStore } from '@/stores/auth'
 import PlayerPicker from '@/components/quickmatch/PlayerPicker.vue'
 
+const props = defineProps<{
+  initialTeamA?: StandaloneParticipant[]
+  initialTeamB?: StandaloneParticipant[]
+}>()
+
 const emit = defineEmits<{
   cancel: []
   saved: []
@@ -13,17 +18,22 @@ const emit = defineEmits<{
 const matchesStore = useMatchesStore()
 const authStore = useAuthStore()
 
-const a1 = ref<StandaloneParticipant | null>(null)
-const a2 = ref<StandaloneParticipant | null>(null)
-const b1 = ref<StandaloneParticipant | null>(null)
-const b2 = ref<StandaloneParticipant | null>(null)
-const showSecondPlayer = ref(false)
+const a1 = ref<StandaloneParticipant | null>(props.initialTeamA?.[0] ?? null)
+const a2 = ref<StandaloneParticipant | null>(props.initialTeamA?.[1] ?? null)
+const b1 = ref<StandaloneParticipant | null>(props.initialTeamB?.[0] ?? null)
+const b2 = ref<StandaloneParticipant | null>(props.initialTeamB?.[1] ?? null)
+const showSecondPlayer = ref(!!(a2.value || b2.value))
 
 const matchSets = ref<{ scoreA: string; scoreB: string }[]>([{ scoreA: '', scoreB: '' }])
 const manualWinner = ref<'A' | 'B' | null>(null)
 const showWinnerPicker = ref(false)
+const isScheduling = ref(false)
+const schedDate = ref('')
+const schedTime = ref('')
 const matchError = ref('')
 const submitting = ref(false)
+
+const todayStr = computed(() => new Date().toISOString().slice(0, 10))
 
 const takenUids = (except: (typeof a1)['value']) =>
   [a1.value, a2.value, b1.value, b2.value]
@@ -73,6 +83,35 @@ const submit = async () => {
     return
   }
 
+  const uid = authStore.user?.uid
+  if (!uid) {
+    matchError.value = 'You must be logged in to create a match.'
+    return
+  }
+
+  if (isScheduling.value) {
+    if (!schedDate.value || !schedTime.value) {
+      matchError.value = 'Please select date and time.'
+      return
+    }
+    const scheduledAt = new Date(`${schedDate.value}T${schedTime.value}`).getTime()
+    if (scheduledAt <= Date.now()) {
+      matchError.value = 'Scheduled time must be in the future.'
+      return
+    }
+    submitting.value = true
+    matchError.value = ''
+    try {
+      await matchesStore.createStandaloneScheduledMatch(teamA, teamB, scheduledAt, uid)
+      emit('saved')
+    } catch {
+      matchError.value = 'Failed to schedule match. Please try again.'
+    } finally {
+      submitting.value = false
+    }
+    return
+  }
+
   const sets: { scoreA: number; scoreB: number }[] = []
   for (let i = 0; i < matchSets.value.length; i++) {
     const s = matchSets.value[i]!
@@ -98,12 +137,6 @@ const submit = async () => {
   if (totalA === totalB && !manualWinner.value) {
     showWinnerPicker.value = true
     matchError.value = ''
-    return
-  }
-
-  const uid = authStore.user?.uid
-  if (!uid) {
-    matchError.value = 'You must be logged in to create a match.'
     return
   }
 
@@ -145,6 +178,32 @@ const submit = async () => {
       </div>
     </div>
 
+    <div class="sched-toggle">
+      <button
+        :class="['sched-tab', { 'sched-tab--active': !isScheduling }]"
+        type="button"
+        @click="isScheduling = false"
+      >
+        Play now
+      </button>
+      <button
+        :class="['sched-tab', { 'sched-tab--active': isScheduling }]"
+        type="button"
+        @click="isScheduling = true"
+      >
+        Schedule
+      </button>
+    </div>
+
+    <template v-if="isScheduling">
+      <div class="sched-datetime">
+        <label class="sched-label">Date</label>
+        <input type="date" v-model="schedDate" :min="todayStr" class="sched-input" />
+        <label class="sched-label">Time</label>
+        <input type="time" v-model="schedTime" class="sched-input" />
+      </div>
+    </template>
+    <template v-else>
     <div class="match-form-sets">
       <div v-for="(set, i) in matchSets" :key="i" class="match-set-row">
         <span class="set-num-label">Set {{ i + 1 }}</span>
@@ -175,10 +234,11 @@ const submit = async () => {
         </div>
       </div>
     </div>
+    </template>
 
     <div class="match-form-footer">
       <button class="btn-sm-primary" :disabled="submitting" @click="submit">
-        {{ submitting ? '…' : 'Save Match' }}
+        {{ submitting ? '…' : isScheduling ? 'Schedule Match' : 'Save Match' }}
       </button>
       <button class="btn-sm-ghost" :disabled="submitting" @click="emit('cancel')">Cancel</button>
     </div>
@@ -218,6 +278,70 @@ const submit = async () => {
   font-family: 'Anton', sans-serif;
   font-size: 18px;
   color: var(--color-border);
+}
+
+.sched-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--color-bg-soft);
+  border-radius: 8px;
+}
+
+.sched-tab {
+  flex: 1;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sched-tab--active {
+  background: var(--color-white);
+  color: var(--color-text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.sched-tab:hover:not(.sched-tab--active) {
+  color: var(--color-text-hover);
+}
+
+.sched-datetime {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sched-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sched-input {
+  padding: 7px 10px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--color-text);
+  background: var(--color-white);
+  outline: none;
+  cursor: pointer;
+}
+
+.sched-input:focus {
+  border-color: var(--color-primary);
 }
 
 .btn-doubles-toggle {

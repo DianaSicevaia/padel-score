@@ -1,12 +1,17 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificationsStore } from '@/stores/notifications'
 import { useRouter, useRoute } from 'vue-router'
 
 const authStore = useAuthStore()
+const notificationsStore = useNotificationsStore()
 const router = useRouter()
 const route = useRoute()
 
+onMounted(() => {
+  if (authStore.user) void notificationsStore.fetchNotifications(authStore.user.uid)
+})
 
 const displayName = computed(() => {
   const user = authStore.user
@@ -102,6 +107,30 @@ const initials = computed(() => {
           <path d="M16 3.13a4 4 0 0 1 0 7.75" />
         </svg>
         My Club
+      </a>
+      <a
+        class="sb-nav-item"
+        :class="{ 'sb-nav-item--active': route.path === '/notifications' }"
+        @click="router.push('/notifications')"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+        </svg>
+        Notifications
+        <span v-if="notificationsStore.unreadCount > 0" class="sb-nav-badge">{{
+          notificationsStore.unreadCount
+        }}</span>
       </a>
       <a class="sb-nav-item">
         <svg
@@ -241,6 +270,18 @@ const initials = computed(() => {
   cursor: pointer;
   text-decoration: none;
   transition: background 0.15s;
+}
+
+.sb-nav-badge {
+  margin-left: auto;
+  background: var(--color-danger);
+  color: var(--color-white);
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 1px 7px;
+  flex-shrink: 0;
 }
 
 .sb-nav-item svg {
