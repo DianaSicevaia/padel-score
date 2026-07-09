@@ -13,6 +13,9 @@ import { db } from '@/firebase'
 import { usePlayersStore } from '@/stores/players'
 import type { Player } from '@/stores/players'
 import { useUsersStore, START_RATING as USER_START_RATING } from '@/stores/users'
+import { useAuthStore } from '@/stores/auth'
+import { useClubsStore } from '@/stores/clubs'
+import { useNotificationsStore } from '@/stores/notifications'
 
 export interface MatchPlayerSnapshot {
   playerId: string
@@ -47,6 +50,8 @@ export interface Match {
   createdAt: number
   before?: MatchPlayerSnapshot[]
   participantUids?: string[]
+  status?: 'pending' | 'cancelled'
+  createdBy?: string
 }
 
 interface MatchesState {
@@ -276,6 +281,10 @@ export const useMatchesStore = defineStore('matches', {
         ...computeEloUpdates(playersB, avgB, avgA, winnerTeam === 'B'),
       ]
 
+      const participantUids = Array.from(
+        new Set([...playersA, ...playersB].map((p) => p.uid).filter((u): u is string => !!u)),
+      )
+
       const now = Date.now()
       const matchData: Omit<Match, 'id'> = {
         clubId,
@@ -289,6 +298,7 @@ export const useMatchesStore = defineStore('matches', {
         winnerTeam,
         createdAt: now,
         before,
+        ...(participantUids.length ? { participantUids } : {}),
       }
 
       const docRef = await addDoc(collection(db, 'matches'), matchData)
@@ -350,6 +360,10 @@ export const useMatchesStore = defineStore('matches', {
         ...computeEloUpdates(playersB, avgB, avgA, winnerTeam === 'B'),
       ]
 
+      const participantUids = Array.from(
+        new Set([...playersA, ...playersB].map((p) => p.uid).filter((u): u is string => !!u)),
+      )
+
       await updateDoc(doc(db, 'matches', matchId), {
         teamA,
         teamB,
@@ -360,6 +374,7 @@ export const useMatchesStore = defineStore('matches', {
         scoreB,
         winnerTeam,
         before,
+        participantUids,
       })
 
       await playersStore.applyMatchResult(statsUpdates)
@@ -376,6 +391,7 @@ export const useMatchesStore = defineStore('matches', {
           scoreA,
           scoreB,
           winnerTeam,
+          participantUids,
           before,
         }
       }
@@ -388,9 +404,20 @@ export const useMatchesStore = defineStore('matches', {
       scheduledAt: number,
     ) {
       const playersStore = usePlayersStore()
+      const authStore = useAuthStore()
       const resolve = (id: string) => playersStore.players.find((p) => p.id === id)
       const teamANames = teamAIds.map(id => resolve(id)?.name ?? id)
       const teamBNames = teamBIds.map(id => resolve(id)?.name ?? id)
+
+      const currentUid = authStore.user?.uid
+      const resolvedPlayers = [...teamAIds, ...teamBIds]
+        .map(resolve)
+        .filter((p): p is Player => !!p?.uid)
+      const inviteeUids = Array.from(
+        new Set(resolvedPlayers.filter((p) => p.uid !== currentUid).map((p) => p.uid!)),
+      )
+      const participantUids = Array.from(new Set(resolvedPlayers.map((p) => p.uid!)))
+
       const now = Date.now()
       const matchData: Omit<Match, 'id'> = {
         clubId,
@@ -403,20 +430,89 @@ export const useMatchesStore = defineStore('matches', {
         scoreB: 0,
         scheduledAt,
         createdAt: now,
+        ...(participantUids.length ? { participantUids } : {}),
+        ...(inviteeUids.length ? { status: 'pending' as const } : {}),
+        ...(currentUid ? { createdBy: currentUid } : {}),
       }
       const docRef = await addDoc(collection(db, 'matches'), matchData)
       this.matches.unshift({ id: docRef.id, ...matchData })
+
+      if (inviteeUids.length) {
+        const clubName = useClubsStore().clubs.find((c) => c.id === clubId)?.name ?? 'a club'
+        await useNotificationsStore().createMatchInviteNotifications(
+          inviteeUids,
+          clubId,
+          clubName,
+          docRef.id,
+          `${teamANames.join(' & ')} vs ${teamBNames.join(' & ')}`,
+          scheduledAt,
+        )
+      }
+    },
+
+    async createStandaloneScheduledMatch(
+      teamA: StandaloneParticipant[],
+      teamB: StandaloneParticipant[],
+      scheduledAt: number,
+      creatorUid: string,
+    ) {
+      const genGuestId = () => `guest-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`
+      const idOf = (p: StandaloneParticipant) => p.uid ?? genGuestId()
+
+      const teamAIds = teamA.map(idOf)
+      const teamBIds = teamB.map(idOf)
+      const teamANames = teamA.map((p) => p.name)
+      const teamBNames = teamB.map((p) => p.name)
+
+      const allParticipants = [...teamA, ...teamB]
+      const allUids = allParticipants.map((p) => p.uid).filter((u): u is string => !!u)
+      const participantUids = Array.from(new Set([...allUids, creatorUid]))
+      const inviteeUids = Array.from(
+        new Set(allUids.filter((uid) => uid !== creatorUid)),
+      )
+
+      const now = Date.now()
+      const matchData: Omit<Match, 'id'> = {
+        teamA: teamAIds,
+        teamB: teamBIds,
+        teamANames,
+        teamBNames,
+        sets: [],
+        scoreA: 0,
+        scoreB: 0,
+        scheduledAt,
+        createdAt: now,
+        participantUids,
+        createdBy: creatorUid,
+        ...(inviteeUids.length ? { status: 'pending' as const } : {}),
+      }
+      const docRef = await addDoc(collection(db, 'matches'), matchData)
+      this.standaloneMatches.unshift({ id: docRef.id, ...matchData })
+
+      if (inviteeUids.length) {
+        await useNotificationsStore().createMatchInviteNotifications(
+          inviteeUids,
+          undefined,
+          'a standalone match',
+          docRef.id,
+          `${teamANames.join(' & ')} vs ${teamBNames.join(' & ')}`,
+          scheduledAt,
+        )
+      }
     },
 
     async updateMatchSchedule(matchId: string, scheduledAt: number) {
       await updateDoc(doc(db, 'matches', matchId), { scheduledAt })
-      const idx = this.matches.findIndex((m) => m.id === matchId)
-      if (idx !== -1) this.matches[idx] = { ...this.matches[idx]!, scheduledAt }
+      for (const arr of [this.matches, this.standaloneMatches]) {
+        const idx = arr.findIndex((m) => m.id === matchId)
+        if (idx !== -1) arr[idx] = { ...arr[idx]!, scheduledAt }
+      }
     },
 
     async cancelScheduledMatch(matchId: string) {
       await deleteDoc(doc(db, 'matches', matchId))
       this.matches = this.matches.filter((m) => m.id !== matchId)
+      this.standaloneMatches = this.standaloneMatches.filter((m) => m.id !== matchId)
     },
   },
 })

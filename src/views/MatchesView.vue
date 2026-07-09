@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '@/firebase'
 import { useClubsStore } from '@/stores/clubs'
 import type { Club } from '@/stores/clubs'
 import { useMatchesStore } from '@/stores/matches'
@@ -15,6 +17,47 @@ const router = useRouter()
 const clubsStore = useClubsStore()
 const matchesStore = useMatchesStore()
 const authStore = useAuthStore()
+
+// Clubs the user isn't a member of, but is directly invited to play a match
+// in (fetched on demand so those matches can still show a real club name).
+const externalClubs = ref<Record<string, Club>>({})
+const myClubIds = computed(() => new Set(clubsStore.clubs.map((c) => c.id)))
+
+// matches.standaloneMatches is fetched by participation (participantUids),
+// so it also contains matches from clubs the user IS a member of — those are
+// already covered by allMatches, so only keep the ones not covered there.
+const participantMatches = computed(() =>
+  matchesStore.standaloneMatches.filter((m) => !m.clubId || !myClubIds.value.has(m.clubId)),
+)
+
+watch(participantMatches, async (matches) => {
+  const missingIds = Array.from(
+    new Set(
+      matches
+        .map((m) => m.clubId)
+        .filter((id): id is string => !!id && !myClubIds.value.has(id) && !externalClubs.value[id]),
+    ),
+  )
+  await Promise.all(
+    missingIds.map(async (id) => {
+      const snap = await getDoc(doc(db, 'clubs', id))
+      if (snap.exists()) externalClubs.value[id] = { id: snap.id, ...(snap.data() as Omit<Club, 'id'>) }
+    }),
+  )
+})
+
+const clubFor = (clubId: string | undefined): Club | undefined =>
+  clubId ? externalClubs.value[clubId] : undefined
+
+function groupByClub(matches: Match[]): { club?: Club; matches: Match[] }[] {
+  const map = new Map<string, { club?: Club; matches: Match[] }>()
+  for (const m of matches) {
+    const key = m.clubId ?? '__standalone__'
+    if (!map.has(key)) map.set(key, { club: clubFor(m.clubId), matches: [] })
+    map.get(key)!.matches.push(m)
+  }
+  return [...map.values()]
+}
 
 const showNewMatchModal = ref(false)
 
@@ -44,9 +87,7 @@ const isLoading = computed(
   () => clubsStore.loading || matchesStore.allLoading || matchesStore.standaloneLoading,
 )
 
-const standaloneCompleted = computed(() =>
-  matchesStore.standaloneMatches.filter((m) => !!m.winnerTeam),
-)
+const participantCompleted = computed(() => participantMatches.value.filter((m) => !!m.winnerTeam))
 
 // Groups (by club, plus one "without a club" group) ordered by the most recent
 // match in each group — allMatches/standaloneMatches are already sorted by
@@ -59,32 +100,38 @@ const groupedMatches = computed(() => {
     }))
     .filter((g) => g.matches.length > 0)
 
-  const groups = [...clubGroups]
-  if (standaloneCompleted.value.length > 0) {
-    groups.push({ club: undefined, matches: standaloneCompleted.value })
-  }
-
+  const groups = [...clubGroups, ...groupByClub(participantCompleted.value)]
   return groups.sort((a, b) => (b.matches[0]?.createdAt ?? 0) - (a.matches[0]?.createdAt ?? 0))
 })
 
-const groupedScheduled = computed(() =>
-  clubsStore.clubs
+const participantScheduled = computed(() =>
+  participantMatches.value.filter((m) => m.scheduledAt && !m.winnerTeam && m.status !== 'cancelled'),
+)
+
+const groupedScheduled = computed(() => {
+  const clubGroups = clubsStore.clubs
     .map((club) => ({
-      club,
+      club: club as Club | undefined,
       matches: matchesStore.allMatches.filter(
-        (m) => m.clubId === club.id && m.scheduledAt && !m.winnerTeam,
+        (m) => m.clubId === club.id && m.scheduledAt && !m.winnerTeam && m.status !== 'cancelled',
       ),
     }))
-    .filter((g) => g.matches.length > 0),
-)
+    .filter((g) => g.matches.length > 0)
+
+  return [...clubGroups, ...groupByClub(participantScheduled.value)]
+})
 
 const totalCount = computed(
   () =>
-    matchesStore.allMatches.filter((m) => !!m.winnerTeam).length + standaloneCompleted.value.length,
+    matchesStore.allMatches.filter((m) => !!m.winnerTeam).length + participantCompleted.value.length,
 )
 
 const goToClubForPlayNow = (match: Match) => {
-  router.push({ path: `/clubs/${match.clubId}`, query: { playNow: match.id } })
+  if (match.clubId) {
+    router.push({ path: `/clubs/${match.clubId}`, query: { playNow: match.id } })
+  } else {
+    router.push({ path: '/matches/new', query: { playNow: match.id } })
+  }
 }
 </script>
 
@@ -152,6 +199,7 @@ const goToClubForPlayNow = (match: Match) => {
           <MatchesUpcomingSection
             v-if="groupedScheduled.length > 0"
             :groups="groupedScheduled"
+            :currentUid="authStore.user?.uid ?? null"
             @play-now="goToClubForPlayNow"
             @club-click="(id) => router.push(`/clubs/${id}`)"
           />

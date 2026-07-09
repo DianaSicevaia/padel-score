@@ -57,7 +57,8 @@ src
 │   ├── dashboard/
 │   ├── layout/
 │   ├── matches/
-│   └── myclub/
+│   ├── myclub
+│   └── quickmatch/
 ├── firebase/
 │   └── index.ts            # Firebase configuration and initialization
 ├── router/
@@ -76,6 +77,8 @@ src
 │   ├── MyClubView.vue
 │   ├── ClubView.vue
 │   ├── MatchesView.vue
+│   ├── NotificationsView.vue
+│   ├── QuickMatchView.vue
 │   └── SettingsView.vue
 ├── App.vue
 └── main.ts

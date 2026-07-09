@@ -12,12 +12,15 @@ import {
 } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { useClubsStore } from '@/stores/clubs'
+import { useAuthStore } from '@/stores/auth'
+import { useNotificationsStore } from '@/stores/notifications'
 
 export interface Player {
   id: string
   clubId: string
   name: string
   uid?: string
+  status?: 'requested'
   rating: number
   matchesPlayed: number
   wins: number
@@ -58,11 +61,14 @@ export const usePlayersStore = defineStore('players', {
     },
 
     async createPlayer(clubId: string, name: string, uid?: string) {
+      const authStore = useAuthStore()
+      const isSelf = !uid || uid === authStore.user?.uid
       const now = Date.now()
       const data: Omit<Player, 'id'> = {
         clubId,
         name: name.trim(),
         ...(uid ? { uid } : {}),
+        ...(uid && !isSelf ? { status: 'requested' as const } : {}),
         rating: 0,
         matchesPlayed: 0,
         wins: 0,
@@ -72,8 +78,11 @@ export const usePlayersStore = defineStore('players', {
       const docRef = await addDoc(collection(db, 'players'), data)
       this.players.push({ id: docRef.id, ...data })
 
-      if (uid) {
+      if (uid && isSelf) {
         await useClubsStore().addMember(clubId, uid)
+      } else if (uid && !isSelf) {
+        const clubName = useClubsStore().clubs.find((c) => c.id === clubId)?.name ?? 'a club'
+        await useNotificationsStore().createClubInviteNotification(uid, clubId, clubName)
       }
     },
 

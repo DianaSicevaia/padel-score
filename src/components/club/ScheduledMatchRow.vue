@@ -7,7 +7,10 @@ import type { Player } from '@/stores/players'
 const props = defineProps<{
   match: Match
   players: Player[]
+  currentUid: string | null
 }>()
+
+const canPlayNow = () => !props.match.createdBy || props.match.createdBy === props.currentUid
 
 const emit = defineEmits<{
   'play-now': [match: Match]
@@ -77,8 +80,11 @@ const confirmEdit = async () => {
         </span>
       </div>
       <div class="scheduled-actions">
-        <button class="btn-play-now" @click="emit('play-now', match)">▶ Play now</button>
-        <button class="btn-icon" title="Edit schedule" @click="openEdit">
+        <span v-if="match.status === 'pending'" class="status-badge">Awaiting confirmation</span>
+        <span v-else-if="match.status === 'cancelled'" class="status-badge status-badge--cancelled">Cancelled</span>
+        <button v-else-if="canPlayNow()" class="btn-play-now" @click="emit('play-now', match)">▶ Play now</button>
+        <span v-else class="status-badge">Only the organizer can start this match</span>
+        <button v-if="match.status !== 'cancelled'" class="btn-icon" title="Edit schedule" @click="openEdit">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
             <line x1="16" y1="2" x2="16" y2="6" />
@@ -147,6 +153,22 @@ const confirmEdit = async () => {
   gap: 8px;
   flex-wrap: wrap;
   flex: 1;
+}
+
+.status-badge {
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-bg-muted);
+  border-radius: 999px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.status-badge--cancelled {
+  color: var(--color-danger-text);
+  background: var(--color-danger-bg-hover);
 }
 
 .btn-play-now {

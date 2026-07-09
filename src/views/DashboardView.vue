@@ -3,10 +3,12 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useClubsStore } from '@/stores/clubs'
 import { useMatchesStore } from '@/stores/matches'
+import { useNotificationsStore } from '@/stores/notifications'
 import { useRouter } from 'vue-router'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import DashboardStatsRow from '@/components/dashboard/DashboardStatsRow.vue'
 import ClubRankingsPanel from '@/components/dashboard/ClubRankingsPanel.vue'
+import UpcomingMatchesPanel from '@/components/dashboard/UpcomingMatchesPanel.vue'
 import NewMatchModal from '@/components/dashboard/NewMatchModal.vue'
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '@/firebase'
@@ -16,6 +18,7 @@ import type { RankEntry } from '@/types/dashboard'
 const authStore = useAuthStore()
 const clubsStore = useClubsStore()
 const matchesStore = useMatchesStore()
+const notificationsStore = useNotificationsStore()
 const router = useRouter()
 
 const currentUid = computed(() => authStore.user?.uid ?? null)
@@ -74,6 +77,8 @@ onMounted(async () => {
       myPlayers.value = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Player, 'id'>) }))
     }),
     matchesStore.fetchAllMatches(clubIds),
+    // Matches I'm invited to but haven't (yet) formally joined the club for.
+    matchesStore.fetchStandaloneMatches(uid),
   ]
 
   if (clubIds.length) {
@@ -194,16 +199,23 @@ const rankChangeText = computed((): string | null => {
 })
 
 // ── Upcoming matches ──────────────────────────────
+// Merge club-scoped matches (from clubs I'm a member of) with matches I'm a
+// direct participant in (e.g. invited to play in a club I haven't joined yet).
 const myUpcomingMatches = computed(() => {
   const ids = myPlayerIds.value
-  if (!ids.size) return []
-  return matchesStore.allMatches
-    .filter(
-      (m) =>
-        m.scheduledAt &&
-        !m.winnerTeam &&
-        (m.teamA.some((id) => ids.has(id)) || m.teamB.some((id) => ids.has(id))),
-    )
+  const uid = currentUid.value
+
+  const byId = new Map<string, (typeof matchesStore.allMatches)[number]>()
+  for (const m of matchesStore.allMatches) byId.set(m.id, m)
+  for (const m of matchesStore.standaloneMatches) if (!byId.has(m.id)) byId.set(m.id, m)
+
+  return [...byId.values()]
+    .filter((m) => {
+      if (!m.scheduledAt || m.winnerTeam || m.status === 'cancelled') return false
+      return m.clubId
+        ? m.teamA.some((id) => ids.has(id)) || m.teamB.some((id) => ids.has(id))
+        : !!uid && !!m.participantUids?.includes(uid)
+    })
     .sort((a, b) => (a.scheduledAt ?? 0) - (b.scheduledAt ?? 0))
 })
 
@@ -275,11 +287,12 @@ const stats = computed(() => [
           <div class="m-logo-icon">P</div>
           <span class="m-logo-text">Padel Club</span>
         </div>
-        <button class="m-topbar-btn" aria-label="Notifications">
+        <button class="m-topbar-btn" aria-label="Notifications" @click="router.push('/notifications')">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
             <path d="M13.73 21a2 2 0 0 1-3.46 0" />
           </svg>
+          <span v-if="notificationsStore.unreadCount > 0" class="notif-dot"></span>
         </button>
       </header>
 
@@ -299,11 +312,12 @@ const stats = computed(() => [
               </svg>
               New Match
             </button>
-            <button class="btn-notif" aria-label="Notifications">
+            <button class="btn-notif" aria-label="Notifications" @click="router.push('/notifications')">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
+              <span v-if="notificationsStore.unreadCount > 0" class="notif-dot"></span>
             </button>
           </div>
         </div>
@@ -330,12 +344,14 @@ const stats = computed(() => [
         </button>
 
         <!-- Club Rankings + Upcoming Matches -->
-        <ClubRankingsPanel
-          :rankEntries="rankEntries"
-          :upcomingMatches="myUpcomingMatches"
-          :clubs="clubsStore.clubs"
-          @match-click="(clubId) => clubId && router.push(`/clubs/${clubId}`)"
-        />
+        <div class="dashboard-panels-row">
+          <ClubRankingsPanel :rankEntries="rankEntries" />
+          <UpcomingMatchesPanel
+            :upcomingMatches="myUpcomingMatches"
+            :clubs="clubsStore.clubs"
+            @match-click="(clubId) => clubId && router.push(`/clubs/${clubId}`)"
+          />
+        </div>
       </div>
 
       <!-- Mobile bottom nav -->
@@ -419,6 +435,23 @@ const stats = computed(() => [
   gap: 28px;
 }
 
+.dashboard-panels-row {
+  display: flex;
+  align-items: stretch;
+  gap: 20px;
+}
+
+.dashboard-panels-row > * {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .dashboard-panels-row {
+    flex-direction: column;
+  }
+}
+
 /* ── PAGE HEADER ── */
 .page-hdr {
   display: flex;
@@ -477,6 +510,7 @@ const stats = computed(() => [
 }
 
 .btn-notif {
+  position: relative;
   width: 40px;
   height: 40px;
   border-radius: 999px;
@@ -490,6 +524,17 @@ const stats = computed(() => [
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   transition: background 0.15s;
   flex-shrink: 0;
+}
+
+.notif-dot {
+  position: absolute;
+  top: 9px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-danger);
+  border: 1.5px solid var(--color-white);
 }
 
 .btn-notif:hover {
@@ -531,6 +576,7 @@ const stats = computed(() => [
   }
 
   .m-topbar-btn {
+    position: relative;
     background: none;
     border: none;
     padding: 0;
