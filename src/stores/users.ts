@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore'
+import { collection, getDocs, getDoc, doc, updateDoc, setDoc } from 'firebase/firestore'
 import { db } from '@/firebase'
+
+export type PreferredSide = 'left' | 'right'
 
 export interface UserProfile {
   uid: string
@@ -12,6 +14,7 @@ export interface UserProfile {
   wins: number
   losses: number
   createdAt: number
+  preferredSide?: PreferredSide
 }
 
 interface RawUserData {
@@ -23,6 +26,7 @@ interface RawUserData {
   wins?: number
   losses?: number
   createdAt?: number
+  preferredSide?: PreferredSide | null
 }
 
 export const START_RATING = 1000
@@ -38,6 +42,7 @@ function normalizeUser(uid: string, data: RawUserData): UserProfile {
     wins: data.wins ?? 0,
     losses: data.losses ?? 0,
     createdAt: data.createdAt ?? 0,
+    preferredSide: data.preferredSide ?? undefined,
   }
 }
 
@@ -89,8 +94,30 @@ export const useUsersStore = defineStore('users', {
         .filter((u): u is UserProfile => !!u)
     },
 
+    async fetchOwnProfile(uid: string): Promise<UserProfile | null> {
+      const snap = await getDoc(doc(db, 'users', uid))
+      if (!snap.exists()) return null
+      const profile = normalizeUser(uid, snap.data() as RawUserData)
+      const idx = this.allUsers.findIndex((u) => u.uid === uid)
+      if (idx !== -1) this.allUsers[idx] = profile
+      return profile
+    },
+
+    async updatePreferredSide(uid: string, side: PreferredSide | null) {
+      await setDoc(doc(db, 'users', uid), { preferredSide: side }, { merge: true })
+      const idx = this.allUsers.findIndex((u) => u.uid === uid)
+      if (idx !== -1)
+        this.allUsers[idx] = { ...this.allUsers[idx]!, preferredSide: side ?? undefined }
+    },
+
     async applyMatchResult(
-      updates: { uid: string; rating: number; matchesPlayed: number; wins: number; losses: number }[],
+      updates: {
+        uid: string
+        rating: number
+        matchesPlayed: number
+        wins: number
+        losses: number
+      }[],
     ) {
       for (const u of updates) {
         await updateDoc(doc(db, 'users', u.uid), {

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useUsersStore } from '@/stores/users'
+import { useAuthStore } from '@/stores/auth'
 import type { StandaloneParticipant } from '@/stores/matches'
 
 const props = defineProps<{
@@ -14,9 +15,23 @@ const emit = defineEmits<{
 }>()
 
 const usersStore = useUsersStore()
+const authStore = useAuthStore()
 const term = ref('')
 const showDropdown = ref(false)
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+const myUid = computed(() => authStore.user?.uid)
+const myName = computed(
+  () => authStore.user?.displayName || authStore.user?.email?.split('@')[0] || 'Me',
+)
+const canAddSelf = computed(() => !!myUid.value && !props.excludeUids.includes(myUid.value))
+
+const addSelf = () => {
+  if (!myUid.value) return
+  emit('update:modelValue', { uid: myUid.value, name: myName.value })
+  term.value = ''
+  showDropdown.value = false
+}
 
 watch(term, (value) => {
   if (debounceTimer) clearTimeout(debounceTimer)
@@ -53,7 +68,12 @@ const onBlur = () => {
 
 <template>
   <div class="player-picker">
-    <span class="picker-label">{{ label }}</span>
+    <div class="picker-label-row">
+      <span class="picker-label">{{ label }}</span>
+      <button v-if="!modelValue && canAddSelf" class="btn-add-self" type="button" @click="addSelf">
+        Add yourself
+      </button>
+    </div>
 
     <div v-if="modelValue" class="picker-chip">
       <span class="chip-name">{{ modelValue.name }}</span>
@@ -97,6 +117,13 @@ const onBlur = () => {
   position: relative;
 }
 
+.picker-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .picker-label {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
@@ -104,6 +131,21 @@ const onBlur = () => {
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.btn-add-self {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
+.btn-add-self:hover {
+  text-decoration: underline;
 }
 
 .picker-input-wrap {

@@ -8,6 +8,7 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   sendPasswordResetEmail,
+  updateProfile as updateAuthProfile,
 } from 'firebase/auth'
 
 import { auth, db } from '@/firebase'
@@ -116,6 +117,26 @@ export const useAuthStore = defineStore('auth', {
 
     async resetPassword(email: string) {
       await sendPasswordResetEmail(auth, email)
+    },
+
+    async updateUserProfile(updates: { displayName?: string }) {
+      if (!auth.currentUser) throw new Error('Not authenticated')
+
+      await updateAuthProfile(auth.currentUser, {
+        ...(updates.displayName !== undefined ? { displayName: updates.displayName } : {}),
+      })
+
+      await setDoc(
+        doc(db, 'users', auth.currentUser.uid),
+        {
+          ...(updates.displayName !== undefined ? { displayName: updates.displayName } : {}),
+        },
+        { merge: true },
+      )
+
+      // Firebase mutates auth.currentUser in place, so reassign a new object
+      // reference here to make sure Vue picks up the change.
+      this.user = auth.currentUser ? ({ ...auth.currentUser } as User) : null
     },
   },
 })

@@ -194,7 +194,10 @@ const initials = computed(() => {
     <div class="sb-spacer"></div>
 
     <div class="sb-user">
-      <div class="sb-user-avatar">{{ initials }}</div>
+      <div class="sb-user-avatar">
+        <img v-if="authStore.user?.photoURL" :src="authStore.user.photoURL" :alt="displayName" class="sb-user-avatar-img" />
+        <span v-else>{{ initials }}</span>
+      </div>
       <div class="sb-user-info">
         <span class="sb-user-name">{{ displayName }}</span>
         <span class="sb-user-role">Club Captain</span>
@@ -333,6 +336,13 @@ const initials = computed(() => {
   font-weight: 600;
   color: var(--color-text);
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sb-user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .sb-user-name {
