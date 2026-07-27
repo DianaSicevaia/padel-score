@@ -48,6 +48,14 @@ const toggleSecondPlayer = () => {
   }
 }
 
+// Open slots only make sense for a scheduled (not-yet-played) match.
+const switchToPlayNow = () => {
+  for (const slot of [a1, a2, b1, b2]) {
+    if (slot.value?.isOpen) slot.value = null
+  }
+  isScheduling.value = false
+}
+
 const addSet = () => matchSets.value.push({ scoreA: '', scoreB: '' })
 const removeSet = (i: number) => {
   if (matchSets.value.length > 1) matchSets.value.splice(i, 1)
@@ -90,6 +98,10 @@ const submit = async () => {
   }
 
   if (isScheduling.value) {
+    if (teamA.every((p) => p.isOpen) && teamB.every((p) => p.isOpen)) {
+      matchError.value = 'At least one slot must have a real player.'
+      return
+    }
     if (!schedDate.value || !schedTime.value) {
       matchError.value = 'Please select date and time.'
       return
@@ -158,8 +170,14 @@ const submit = async () => {
   <div class="match-form">
     <div class="match-form-teams">
       <div class="match-form-team">
-        <PlayerPicker v-model="a1" label="Team A" :excludeUids="takenUids(a1)" />
-        <PlayerPicker v-if="showSecondPlayer" v-model="a2" label="Partner" :excludeUids="takenUids(a2)" />
+        <PlayerPicker v-model="a1" label="Team A" :excludeUids="takenUids(a1)" :allowOpen="isScheduling" />
+        <PlayerPicker
+          v-if="showSecondPlayer"
+          v-model="a2"
+          label="Partner"
+          :excludeUids="takenUids(a2)"
+          :allowOpen="isScheduling"
+        />
       </div>
       <div class="match-form-vs">
         <span>vs</span>
@@ -173,8 +191,14 @@ const submit = async () => {
         </button>
       </div>
       <div class="match-form-team">
-        <PlayerPicker v-model="b1" label="Team B" :excludeUids="takenUids(b1)" />
-        <PlayerPicker v-if="showSecondPlayer" v-model="b2" label="Partner" :excludeUids="takenUids(b2)" />
+        <PlayerPicker v-model="b1" label="Team B" :excludeUids="takenUids(b1)" :allowOpen="isScheduling" />
+        <PlayerPicker
+          v-if="showSecondPlayer"
+          v-model="b2"
+          label="Partner"
+          :excludeUids="takenUids(b2)"
+          :allowOpen="isScheduling"
+        />
       </div>
     </div>
 
@@ -182,7 +206,7 @@ const submit = async () => {
       <button
         :class="['sched-tab', { 'sched-tab--active': !isScheduling }]"
         type="button"
-        @click="isScheduling = false"
+        @click="switchToPlayNow"
       >
         Play now
       </button>

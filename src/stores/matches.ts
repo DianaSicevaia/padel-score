@@ -8,6 +8,7 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  runTransaction,
 } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { usePlayersStore } from '@/stores/players'
@@ -33,7 +34,10 @@ export interface MatchSet {
 export interface StandaloneParticipant {
   uid?: string
   name: string
+  isOpen?: boolean
 }
+
+export const OPEN_SLOT_ID = 'open'
 
 export interface Match {
   id: string
@@ -52,15 +56,19 @@ export interface Match {
   participantUids?: string[]
   status?: 'pending' | 'cancelled'
   createdBy?: string
+  hasOpenSlot?: boolean
+  pendingUids?: string[]
 }
 
 interface MatchesState {
   matches: Match[]
   allMatches: Match[]
   standaloneMatches: Match[]
+  openMatches: Match[]
   loading: boolean
   allLoading: boolean
   standaloneLoading: boolean
+  openLoading: boolean
 }
 
 const K = 32
@@ -109,9 +117,11 @@ export const useMatchesStore = defineStore('matches', {
     matches: [],
     allMatches: [],
     standaloneMatches: [],
+    openMatches: [],
     loading: false,
     allLoading: false,
     standaloneLoading: false,
+    openLoading: false,
   }),
 
   actions: {
@@ -431,7 +441,7 @@ export const useMatchesStore = defineStore('matches', {
         scheduledAt,
         createdAt: now,
         ...(participantUids.length ? { participantUids } : {}),
-        ...(inviteeUids.length ? { status: 'pending' as const } : {}),
+        ...(inviteeUids.length ? { status: 'pending' as const, pendingUids: inviteeUids } : {}),
         ...(currentUid ? { createdBy: currentUid } : {}),
       }
       const docRef = await addDoc(collection(db, 'matches'), matchData)
@@ -457,12 +467,13 @@ export const useMatchesStore = defineStore('matches', {
       creatorUid: string,
     ) {
       const genGuestId = () => `guest-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`
-      const idOf = (p: StandaloneParticipant) => p.uid ?? genGuestId()
+      const idOf = (p: StandaloneParticipant) => (p.isOpen ? OPEN_SLOT_ID : (p.uid ?? genGuestId()))
+      const nameOf = (p: StandaloneParticipant) => (p.isOpen ? 'Open slot' : p.name)
 
       const teamAIds = teamA.map(idOf)
       const teamBIds = teamB.map(idOf)
-      const teamANames = teamA.map((p) => p.name)
-      const teamBNames = teamB.map((p) => p.name)
+      const teamANames = teamA.map(nameOf)
+      const teamBNames = teamB.map(nameOf)
 
       const allParticipants = [...teamA, ...teamB]
       const allUids = allParticipants.map((p) => p.uid).filter((u): u is string => !!u)
@@ -470,6 +481,7 @@ export const useMatchesStore = defineStore('matches', {
       const inviteeUids = Array.from(
         new Set(allUids.filter((uid) => uid !== creatorUid)),
       )
+      const hasOpenSlot = [...teamAIds, ...teamBIds].includes(OPEN_SLOT_ID)
 
       const now = Date.now()
       const matchData: Omit<Match, 'id'> = {
@@ -484,7 +496,8 @@ export const useMatchesStore = defineStore('matches', {
         createdAt: now,
         participantUids,
         createdBy: creatorUid,
-        ...(inviteeUids.length ? { status: 'pending' as const } : {}),
+        hasOpenSlot,
+        ...(inviteeUids.length ? { status: 'pending' as const, pendingUids: inviteeUids } : {}),
       }
       const docRef = await addDoc(collection(db, 'matches'), matchData)
       this.standaloneMatches.unshift({ id: docRef.id, ...matchData })
@@ -498,6 +511,78 @@ export const useMatchesStore = defineStore('matches', {
           `${teamANames.join(' & ')} vs ${teamBNames.join(' & ')}`,
           scheduledAt,
         )
+      }
+    },
+
+    async fetchOpenMatches(excludeUid?: string) {
+      this.openLoading = true
+      this.openMatches = []
+      try {
+        const q = query(collection(db, 'matches'), where('hasOpenSlot', '==', true))
+        const snapshot = await getDocs(q)
+        const now = Date.now()
+        this.openMatches = snapshot.docs
+          .map((d) => ({ id: d.id, ...(d.data() as Omit<Match, 'id'>) }))
+          .filter(
+            (m) =>
+              !!m.scheduledAt &&
+              m.scheduledAt > now &&
+              !m.winnerTeam &&
+              m.status !== 'cancelled' &&
+              (!excludeUid || !m.participantUids?.includes(excludeUid)),
+          )
+          .sort((a, b) => (a.scheduledAt ?? 0) - (b.scheduledAt ?? 0))
+      } finally {
+        this.openLoading = false
+      }
+    },
+
+    async joinOpenSlot(matchId: string, side: 'A' | 'B', joinerUid: string, joinerName: string) {
+      const matchRef = doc(db, 'matches', matchId)
+      let updated: Match | null = null
+
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(matchRef)
+        if (!snap.exists()) throw new Error('Match not found')
+        const data = snap.data() as Omit<Match, 'id'>
+
+        const teamKey = side === 'A' ? 'teamA' : 'teamB'
+        const namesKey = side === 'A' ? 'teamANames' : 'teamBNames'
+        const team = [...data[teamKey]]
+        const names = [...(data[namesKey] ?? team)]
+        const idx = team.indexOf(OPEN_SLOT_ID)
+        if (idx === -1) throw new Error('No open slot on that side')
+
+        team[idx] = joinerUid
+        names[idx] = joinerName
+        const participantUids = Array.from(new Set([...(data.participantUids ?? []), joinerUid]))
+        const hasOpenSlot = [
+          ...(side === 'A' ? team : data.teamA),
+          ...(side === 'B' ? team : data.teamB),
+        ].includes(OPEN_SLOT_ID)
+
+        const updates = {
+          [teamKey]: team,
+          [namesKey]: names,
+          participantUids,
+          hasOpenSlot,
+        }
+        tx.update(matchRef, updates)
+        updated = { id: matchId, ...data, ...updates } as Match
+      })
+
+      if (updated) {
+        const stillOpen: Match = updated
+        if (stillOpen.hasOpenSlot) {
+          const idx = this.openMatches.findIndex((m) => m.id === matchId)
+          if (idx !== -1) this.openMatches[idx] = stillOpen
+        } else {
+          this.openMatches = this.openMatches.filter((m) => m.id !== matchId)
+        }
+        for (const arr of [this.matches, this.standaloneMatches]) {
+          const idx = arr.findIndex((m) => m.id === matchId)
+          if (idx !== -1) arr[idx] = stillOpen
+        }
       }
     },
 

@@ -8,6 +8,7 @@ const props = defineProps<{
   modelValue: StandaloneParticipant | null
   excludeUids: string[]
   label: string
+  allowOpen?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -59,6 +60,12 @@ const addGuest = () => {
   showDropdown.value = false
 }
 
+const leaveOpen = () => {
+  emit('update:modelValue', { name: 'Open slot', isOpen: true })
+  term.value = ''
+  showDropdown.value = false
+}
+
 const clear = () => emit('update:modelValue', null)
 
 const onBlur = () => {
@@ -75,9 +82,9 @@ const onBlur = () => {
       </button>
     </div>
 
-    <div v-if="modelValue" class="picker-chip">
-      <span class="chip-name">{{ modelValue.name }}</span>
-      <span v-if="!modelValue.uid" class="chip-guest-tag">guest</span>
+    <div v-if="modelValue" class="picker-chip" :class="{ 'picker-chip--open': modelValue.isOpen }">
+      <span class="chip-name">{{ modelValue.isOpen ? 'Open — anyone can join' : modelValue.name }}</span>
+      <span v-if="!modelValue.uid && !modelValue.isOpen" class="chip-guest-tag">guest</span>
       <button class="chip-clear" type="button" aria-label="Remove" @click="clear">×</button>
     </div>
 
@@ -105,6 +112,9 @@ const onBlur = () => {
           + Add "{{ term.trim() }}" as guest
         </button>
       </div>
+      <button v-if="allowOpen" class="btn-leave-open" type="button" @mousedown.prevent="leaveOpen">
+        Leave this slot open
+      </button>
     </div>
   </div>
 </template>
@@ -228,6 +238,33 @@ const onBlur = () => {
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-bg-subtle);
+}
+
+.picker-chip--open {
+  border-style: dashed;
+  border-color: var(--color-accent-border);
+  background: var(--color-accent-bg);
+}
+
+.picker-chip--open .chip-name {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.btn-leave-open {
+  margin-top: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+.btn-leave-open:hover {
+  color: var(--color-accent);
 }
 
 .chip-name {
