@@ -4,6 +4,7 @@ import {
   query,
   where,
   getDocs,
+  getDoc,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -110,23 +111,20 @@ export const useNotificationsStore = defineStore('notifications', {
         )
         await useClubsStore().addMember(n.clubId, n.uid)
       } else if (n.type === 'match_invite' && n.matchId) {
-        const matchId = n.matchId
-        const q = query(
-          collection(db, 'notifications'),
-          where('matchId', '==', matchId),
-          where('type', '==', 'match_invite'),
-        )
-        const snap = await getDocs(q)
-        const stillPending = snap.docs.some(
-          (d) => d.id !== n.id && (d.data() as AppNotification).status === 'pending',
-        )
-        if (!stillPending) {
-          // The match may have been deleted (e.g. cancelled from the club) before this was accepted.
-          try {
-            await updateDoc(doc(db, 'matches', matchId), { status: deleteField() })
-          } catch {
-            /* match no longer exists */
+        // The match may have been deleted (e.g. cancelled from the club) before this was accepted.
+        try {
+          const matchRef = doc(db, 'matches', n.matchId)
+          const snap = await getDoc(matchRef)
+          if (snap.exists()) {
+            const data = snap.data() as { pendingUids?: string[] }
+            const pendingUids = (data.pendingUids ?? []).filter((u) => u !== n.uid)
+            await updateDoc(matchRef, {
+              pendingUids,
+              ...(pendingUids.length ? {} : { status: deleteField() }),
+            })
           }
+        } catch {
+          /* match no longer exists */
         }
       }
       await this.setNotificationStatus(n.id, 'accepted')
@@ -142,8 +140,53 @@ export const useNotificationsStore = defineStore('notifications', {
         const snap = await getDocs(q)
         await Promise.all(snap.docs.map((d) => deleteDoc(doc(db, 'players', d.id))))
       } else if (n.type === 'match_invite' && n.matchId) {
+        // Declining a match invite frees up that slot (rather than cancelling
+        // the whole match) — 'open' is the sentinel used for unclaimed slots,
+        // matching OPEN_SLOT_ID in stores/matches.ts.
         try {
-          await updateDoc(doc(db, 'matches', n.matchId), { status: 'cancelled' })
+          const matchRef = doc(db, 'matches', n.matchId)
+          const snap = await getDoc(matchRef)
+          if (snap.exists()) {
+            const data = snap.data() as {
+              teamA: string[]
+              teamB: string[]
+              teamANames?: string[]
+              teamBNames?: string[]
+              participantUids?: string[]
+              pendingUids?: string[]
+            }
+            const teamA = [...data.teamA]
+            const teamB = [...data.teamB]
+            const teamANames = [...(data.teamANames ?? teamA)]
+            const teamBNames = [...(data.teamBNames ?? teamB)]
+            let changed = false
+            const idxA = teamA.indexOf(n.uid)
+            if (idxA !== -1) {
+              teamA[idxA] = 'open'
+              teamANames[idxA] = 'Open slot'
+              changed = true
+            }
+            const idxB = teamB.indexOf(n.uid)
+            if (idxB !== -1) {
+              teamB[idxB] = 'open'
+              teamBNames[idxB] = 'Open slot'
+              changed = true
+            }
+            if (changed) {
+              const participantUids = (data.participantUids ?? []).filter((u) => u !== n.uid)
+              const pendingUids = (data.pendingUids ?? []).filter((u) => u !== n.uid)
+              await updateDoc(matchRef, {
+                teamA,
+                teamB,
+                teamANames,
+                teamBNames,
+                participantUids,
+                pendingUids,
+                hasOpenSlot: true,
+                ...(pendingUids.length ? {} : { status: deleteField() }),
+              })
+            }
+          }
         } catch {
           /* match no longer exists */
         }

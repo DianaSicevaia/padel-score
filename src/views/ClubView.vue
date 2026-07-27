@@ -8,6 +8,7 @@ import { useMatchesStore } from '@/stores/matches'
 import type { Match } from '@/stores/matches'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useUsersStore } from '@/stores/users'
 import ClubPlayersPanel from '@/components/club/ClubPlayersPanel.vue'
 import MatchForm from '@/components/club/MatchForm.vue'
 import MatchRow from '@/components/club/MatchRow.vue'
@@ -20,6 +21,7 @@ const playersStore = usePlayersStore()
 const matchesStore = useMatchesStore()
 const authStore = useAuthStore()
 const notificationsStore = useNotificationsStore()
+const usersStore = useUsersStore()
 
 const currentUid = computed(() => authStore.user?.uid ?? null)
 const myPlayer = computed(() =>
@@ -92,6 +94,9 @@ onMounted(async () => {
     playersStore.fetchPlayers(clubId.value),
     matchesStore.fetchMatches(clubId.value),
   ])
+  // Warm the profile cache so match rows can show each player's photo.
+  const uids = playersStore.players.map((p) => p.uid).filter((u): u is string => !!u)
+  if (uids.length) void usersStore.getUsersByUid(uids)
   if (route.query.newMatch === '1') {
     openMatchForm()
     router.replace({ params: route.params, query: {} })

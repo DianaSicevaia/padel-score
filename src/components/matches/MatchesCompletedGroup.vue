@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { OPEN_SLOT_ID } from '@/stores/matches'
 import type { Match } from '@/stores/matches'
 import type { Club } from '@/stores/clubs'
+import { useUsersStore } from '@/stores/users'
+import TeamRoster from '@/components/shared/TeamRoster.vue'
+import type { RosterPlayer } from '@/components/shared/TeamRoster.vue'
 
 defineProps<{
   club?: Club
@@ -12,6 +16,7 @@ const emit = defineEmits<{
   'club-click': [clubId: string]
 }>()
 
+const usersStore = useUsersStore()
 const expandedMatchIds = ref(new Set<string>())
 
 const toggleSetsDetail = (matchId: string) => {
@@ -21,9 +26,20 @@ const toggleSetsDetail = (matchId: string) => {
   expandedMatchIds.value = next
 }
 
-const teamDisplay = (m: Match, side: 'A' | 'B') => {
+// Club-match team entries are club-roster ids (not uids), so photo/invite
+// lookups only resolve for standalone (no-club) matches.
+const teamRoster = (m: Match, side: 'A' | 'B'): RosterPlayer[] => {
+  const ids = side === 'A' ? m.teamA : m.teamB
   const names = side === 'A' ? m.teamANames : m.teamBNames
-  return names?.join(' & ') ?? (side === 'A' ? m.teamA : m.teamB).join(' & ')
+  return ids.map((id, i) => {
+    const name = names?.[i] ?? id
+    if (m.clubId) return { id, name }
+    const isOpen = id === OPEN_SLOT_ID
+    const isGuest = id.startsWith('guest-')
+    const photoUrl =
+      !isOpen && !isGuest ? usersStore.allUsers.find((u) => u.uid === id)?.photoUrl : undefined
+    return { id, name, photoUrl, isOpen }
+  })
 }
 
 const displaySets = (m: Match) =>
@@ -61,9 +77,13 @@ const formatDate = (ts: number) =>
         <div class="match-row">
           <div class="match-row-main">
             <div class="match-teams">
-              <span class="team-name" :class="{ 'team-name--winner': match.winnerTeam === 'A' }">
-                {{ teamDisplay(match, 'A') }}
-              </span>
+              <TeamRoster
+                class="team-roster"
+                :players="teamRoster(match, 'A')"
+                align="start"
+                :avatarSize="22"
+                :winner="match.winnerTeam === 'A'"
+              />
               <div class="match-score-block">
                 <template v-if="displaySets(match).length > 1">
                   <button
@@ -94,9 +114,13 @@ const formatDate = (ts: number) =>
                   </span>
                 </template>
               </div>
-              <span class="team-name team-name--right" :class="{ 'team-name--winner': match.winnerTeam === 'B' }">
-                {{ teamDisplay(match, 'B') }}
-              </span>
+              <TeamRoster
+                class="team-roster"
+                :players="teamRoster(match, 'B')"
+                align="end"
+                :avatarSize="22"
+                :winner="match.winnerTeam === 'B'"
+              />
             </div>
             <span class="match-date">{{ formatDate(match.createdAt) }}</span>
           </div>
@@ -211,23 +235,9 @@ const formatDate = (ts: number) =>
   min-width: 0;
 }
 
-.team-name {
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  color: var(--color-text-subtle);
+.team-roster {
   flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.team-name--right {
-  text-align: right;
-}
-
-.team-name--winner {
-  font-weight: 700;
-  color: var(--color-text);
+  min-width: 0;
 }
 
 .match-score-block {
@@ -328,10 +338,6 @@ const formatDate = (ts: number) =>
 
   .match-row {
     padding: 10px 16px;
-  }
-
-  .team-name {
-    font-size: 12px;
   }
 }
 </style>

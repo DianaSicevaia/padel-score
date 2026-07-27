@@ -3,7 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import QuickMatchForm from '@/components/quickmatch/QuickMatchForm.vue'
-import { useMatchesStore } from '@/stores/matches'
+import { useMatchesStore, OPEN_SLOT_ID } from '@/stores/matches'
 import type { StandaloneParticipant } from '@/stores/matches'
 import { useAuthStore } from '@/stores/auth'
 
@@ -20,7 +20,7 @@ const initialTeamB = ref<StandaloneParticipant[]>([])
 
 const toParticipants = (ids: string[], names?: string[]): StandaloneParticipant[] =>
   ids.map((id, i) => ({
-    ...(id.startsWith('guest-') ? {} : { uid: id }),
+    ...(id === OPEN_SLOT_ID || id.startsWith('guest-') ? {} : { uid: id }),
     name: names?.[i] ?? id,
   }))
 
@@ -31,7 +31,8 @@ onMounted(async () => {
     await matchesStore.fetchStandaloneMatches(authStore.user.uid)
   }
   const match = matchesStore.standaloneMatches.find((m) => m.id === matchId)
-  if (!match) return
+  // Can't record a score while a slot is still unclaimed.
+  if (!match || match.hasOpenSlot) return
   await matchesStore.cancelScheduledMatch(match.id)
   initialTeamA.value = toParticipants(match.teamA, match.teamANames)
   initialTeamB.value = toParticipants(match.teamB, match.teamBNames)

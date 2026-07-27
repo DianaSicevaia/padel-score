@@ -2,6 +2,9 @@
 import { ref } from 'vue'
 import type { Match } from '@/stores/matches'
 import type { Player } from '@/stores/players'
+import { useUsersStore } from '@/stores/users'
+import TeamRoster from '@/components/shared/TeamRoster.vue'
+import type { RosterPlayer } from '@/components/shared/TeamRoster.vue'
 
 const props = defineProps<{
   match: Match
@@ -15,10 +18,17 @@ const emit = defineEmits<{
   delete: [matchId: string]
 }>()
 
+const usersStore = useUsersStore()
 const expanded = ref(false)
 
-const playerName = (id: string) => props.players.find((p) => p.id === id)?.name ?? '?'
-const teamNames = (ids: string[]) => ids.map(playerName).join(' & ')
+const resolveRoster = (ids: string[], names?: string[]): RosterPlayer[] =>
+  ids.map((id, i) => {
+    const player = props.players.find((p) => p.id === id)
+    const photoUrl = player?.uid
+      ? usersStore.allUsers.find((u) => u.uid === player.uid)?.photoUrl
+      : undefined
+    return { id, name: names?.[i] ?? player?.name ?? id, photoUrl }
+  })
 
 const displaySets = (match: Match) =>
   match.sets && match.sets.length > 0
@@ -41,12 +51,13 @@ const formatDate = (ts: number) =>
   <div class="match-row" :class="{ 'match-row--editing': isEditing }">
     <div class="match-row-main">
       <div class="match-teams-display">
-        <span
-          class="match-team-name"
-          :class="{ 'match-team-name--winner': match.winnerTeam === 'A' }"
-        >
-          {{ teamNames(match.teamA) }}
-        </span>
+        <TeamRoster
+          class="match-team-roster"
+          :players="resolveRoster(match.teamA, match.teamANames)"
+          align="start"
+          :avatarSize="22"
+          :winner="match.winnerTeam === 'A'"
+        />
         <div class="match-score-block">
           <template v-if="displaySets(match).length > 1">
             <button
@@ -77,12 +88,13 @@ const formatDate = (ts: number) =>
             </span>
           </template>
         </div>
-        <span
-          class="match-team-name match-team-name--right"
-          :class="{ 'match-team-name--winner': match.winnerTeam === 'B' }"
-        >
-          {{ teamNames(match.teamB) }}
-        </span>
+        <TeamRoster
+          class="match-team-roster"
+          :players="resolveRoster(match.teamB, match.teamBNames)"
+          align="end"
+          :avatarSize="22"
+          :winner="match.winnerTeam === 'B'"
+        />
       </div>
       <span class="match-date-label">{{ formatDate(match.createdAt) }}</span>
       <div class="match-row-actions">
@@ -194,23 +206,9 @@ const formatDate = (ts: number) =>
   text-align: right;
 }
 
-.match-team-name {
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  color: var(--color-text-subtle);
+.match-team-roster {
   flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.match-team-name--right {
-  text-align: right;
-}
-
-.match-team-name--winner {
-  font-weight: 700;
-  color: var(--color-text);
+  min-width: 0;
 }
 
 .set-pill {
@@ -295,9 +293,6 @@ const formatDate = (ts: number) =>
 @media (max-width: 768px) {
   .match-teams-display {
     gap: 8px;
-  }
-  .match-team-name {
-    font-size: 12px;
   }
 }
 </style>

@@ -8,6 +8,7 @@ import type { Club } from '@/stores/clubs'
 import { useMatchesStore } from '@/stores/matches'
 import type { Match } from '@/stores/matches'
 import { useAuthStore } from '@/stores/auth'
+import { useUsersStore } from '@/stores/users'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import NewMatchModal from '@/components/dashboard/NewMatchModal.vue'
 import MatchesUpcomingSection from '@/components/matches/MatchesUpcomingSection.vue'
@@ -17,6 +18,7 @@ const router = useRouter()
 const clubsStore = useClubsStore()
 const matchesStore = useMatchesStore()
 const authStore = useAuthStore()
+const usersStore = useUsersStore()
 
 // Clubs the user isn't a member of, but is directly invited to play a match
 // in (fetched on demand so those matches can still show a real club name).
@@ -81,6 +83,14 @@ onMounted(async () => {
   const fetches: Promise<unknown>[] = [matchesStore.fetchAllMatches(clubsStore.clubs.map((c) => c.id))]
   if (authStore.user) fetches.push(matchesStore.fetchStandaloneMatches(authStore.user.uid))
   await Promise.all(fetches)
+
+  // Warm the profile cache so standalone match rows can show real photos.
+  const uids = Array.from(
+    new Set(
+      matchesStore.standaloneMatches.filter((m) => !m.clubId).flatMap((m) => m.participantUids ?? []),
+    ),
+  )
+  if (uids.length) void usersStore.getUsersByUid(uids)
 })
 
 const isLoading = computed(

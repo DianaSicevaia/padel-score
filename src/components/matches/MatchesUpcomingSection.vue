@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { OPEN_SLOT_ID } from '@/stores/matches'
 import type { Match } from '@/stores/matches'
 import type { Club } from '@/stores/clubs'
+import { useUsersStore } from '@/stores/users'
+import TeamRoster from '@/components/shared/TeamRoster.vue'
+import type { RosterPlayer } from '@/components/shared/TeamRoster.vue'
 
 const props = defineProps<{
   groups: { club?: Club; matches: Match[] }[]
@@ -12,9 +16,23 @@ const emit = defineEmits<{
   'club-click': [clubId: string]
 }>()
 
-const teamDisplay = (m: Match, side: 'A' | 'B') => {
+const usersStore = useUsersStore()
+
+// Club-match team entries are club-roster ids (not uids), so photo/invite
+// lookups only resolve for standalone (no-club) matches.
+const teamRoster = (m: Match, side: 'A' | 'B'): RosterPlayer[] => {
+  const ids = side === 'A' ? m.teamA : m.teamB
   const names = side === 'A' ? m.teamANames : m.teamBNames
-  return names?.join(' & ') ?? (side === 'A' ? m.teamA : m.teamB).join(' & ')
+  return ids.map((id, i) => {
+    const name = names?.[i] ?? id
+    const isOpen = id === OPEN_SLOT_ID
+    if (m.clubId) return { id, name, isOpen }
+    const isGuest = id.startsWith('guest-')
+    const photoUrl =
+      !isOpen && !isGuest ? usersStore.allUsers.find((u) => u.uid === id)?.photoUrl : undefined
+    const pending = !!m.pendingUids?.includes(id)
+    return { id, name, photoUrl, pending, isOpen }
+  })
 }
 
 const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUid
@@ -49,9 +67,9 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
           <div v-if="i > 0" class="panel-divider"></div>
           <div class="upcoming-match-row">
             <div class="upcoming-teams">
-              <span class="team-name">{{ teamDisplay(match, 'A') }}</span>
+              <TeamRoster class="upcoming-roster" :players="teamRoster(match, 'A')" align="start" :avatarSize="24" />
               <div class="upcoming-vs">VS</div>
-              <span class="team-name">{{ teamDisplay(match, 'B') }}</span>
+              <TeamRoster class="upcoming-roster" :players="teamRoster(match, 'B')" align="end" :avatarSize="24" />
             </div>
             <div class="upcoming-right">
               <span class="match-date">
@@ -60,6 +78,7 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
                 {{ new Date(match.scheduledAt!).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) }}
               </span>
               <span v-if="match.status === 'pending'" class="pending-badge">Awaiting confirmation</span>
+              <span v-else-if="match.hasOpenSlot" class="pending-badge">Open slot</span>
               <button v-else-if="canPlayNow(match)" class="btn-play-now" @click="emit('play-now', match)">▶ Play now</button>
               <span v-else class="pending-badge">Organizer only</span>
             </div>
@@ -180,15 +199,11 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
   min-width: 0;
 }
 
-.team-name {
-  font-family: 'Inter', sans-serif;
-  font-size: 13px;
-  color: var(--color-text-subtle);
+.upcoming-roster {
   flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  min-width: 0;
 }
+
 
 .upcoming-vs {
   font-family: 'Geist Mono', monospace;
@@ -244,10 +259,6 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
 @media (max-width: 768px) {
   .club-group {
     max-width: 100%;
-  }
-
-  .team-name {
-    font-size: 12px;
   }
 }
 </style>

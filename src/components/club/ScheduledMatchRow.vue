@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import type { Match } from '@/stores/matches'
 import { useMatchesStore } from '@/stores/matches'
 import type { Player } from '@/stores/players'
+import { useUsersStore } from '@/stores/users'
+import TeamRoster from '@/components/shared/TeamRoster.vue'
+import type { RosterPlayer } from '@/components/shared/TeamRoster.vue'
 
 const props = defineProps<{
   match: Match
@@ -18,13 +21,24 @@ const emit = defineEmits<{
 }>()
 
 const matchesStore = useMatchesStore()
+const usersStore = useUsersStore()
 
 const isEditing = ref(false)
 const editDate = ref('')
 const editTime = ref('')
 
-const playerName = (id: string) => props.players.find((p) => p.id === id)?.name ?? '?'
-const teamNames = (ids: string[]) => ids.map(playerName).join(' & ')
+const resolveRoster = (ids: string[], names?: string[]): RosterPlayer[] =>
+  ids.map((id, i) => {
+    const player = props.players.find((p) => p.id === id)
+    const photoUrl = player?.uid
+      ? usersStore.allUsers.find((u) => u.uid === player.uid)?.photoUrl
+      : undefined
+    const pending = !!player?.uid && !!props.match.pendingUids?.includes(player.uid)
+    return { id, name: names?.[i] ?? player?.name ?? id, photoUrl, pending }
+  })
+
+const teamAPlayers = computed(() => resolveRoster(props.match.teamA, props.match.teamANames))
+const teamBPlayers = computed(() => resolveRoster(props.match.teamB, props.match.teamBNames))
 
 const formatScheduled = (ts: number) => {
   const d = new Date(ts)
@@ -68,7 +82,11 @@ const confirmEdit = async () => {
     </template>
     <template v-else>
       <div class="scheduled-info">
-        <span class="scheduled-teams">{{ teamNames(match.teamA) }} vs {{ teamNames(match.teamB) }}</span>
+        <div class="scheduled-teams-row">
+          <TeamRoster :players="teamAPlayers" align="start" />
+          <span class="vs-label">vs</span>
+          <TeamRoster :players="teamBPlayers" align="end" />
+        </div>
         <span class="scheduled-time">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
@@ -120,11 +138,18 @@ const confirmEdit = async () => {
   gap: 3px;
 }
 
-.scheduled-teams {
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
+.scheduled-teams-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.vs-label {
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-faint);
+  flex-shrink: 0;
 }
 
 .scheduled-time {
