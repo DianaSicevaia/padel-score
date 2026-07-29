@@ -13,24 +13,23 @@ The project is built with Vue 3, TypeScript, Pinia, and Firebase to demonstrate 
 
 ### Implemented
 
-- Firebase Authentication
-- Google Sign-In
-- Protected routes
-- Session persistence
-- User profile creation in Firestore
-
-### In Progress
-
-- Club management
-- Match recording
-- Elo rating system
-- Dashboard statistics
+- Firebase Authentication (email/password + Google Sign-In), protected routes, session persistence
+- Editable profile — display name, preferred padel side, avatar
+- Club management — create clubs, roster of guest and registered players
+- Match recording (1v1 / 2v2), multi-set scores, manual winner override
+- Match scheduling, with a "Play now" flow to convert a scheduled match into a recorded one
+- Elo rating system per club, recalculated automatically on match edit/delete
+- Standalone matches without a club — play with existing registered users (searched site-wide) and/or unregistered guest players; registered participants also get a global rating tracked on their profile
+- Find a Match — schedule a match with an open (unfilled) slot and let other users join it themselves
+- Consent & notifications — inviting a registered user into a club or a scheduled match requires their approval. They get a notification (bell icon + Notifications page) and can accept or decline; declining a match invite frees up just that slot instead of cancelling the whole match
+- Only the match's creator can start ("Play now") a scheduled match
+- Dashboard with stats, Club Rankings and Upcoming Matches panels
+- Real-time data throughout — clubs, rosters, matches, and notifications update live via Firestore listeners, no manual refresh needed
+- Per-player avatars (photo or initial) across match cards, with per-player invite-status badges
 
 ### Planned
 
-- Leaderboards
-- Match scheduling
-- Profile settings page
+- Global (cross-club) leaderboards
 
 ## Tech Stack
 
@@ -57,17 +56,20 @@ src
 │   ├── dashboard/
 │   ├── layout/
 │   ├── matches/
-│   ├── myclub
-│   └── quickmatch/
+│   ├── myclub/
+│   ├── quickmatch/
+│   └── shared/              # Cross-cutting UI (PlayerAvatar, TeamRoster)
 ├── firebase/
 │   └── index.ts            # Firebase configuration and initialization
 ├── router/
 │   └── index.ts            # Application routes and route guards
 ├── stores/
 │   ├── auth.ts             # Authentication state
-│   ├── clubs.ts            # Club management state
-│   ├── matches.ts          # Match management state
-│   ├── players.ts          # Player management state
+│   ├── clubs.ts            # Club state (live subscription)
+│   ├── matches.ts          # Match state (live subscription)
+│   ├── players.ts          # Player/roster state (live subscription)
+│   ├── notifications.ts    # Invite/notification state (live subscription)
+│   ├── users.ts            # Site-wide user profile cache (live subscription)
 │   └── index.ts            # Pinia instance
 ├── views/
 │   ├── LoginView.vue
@@ -77,10 +79,11 @@ src
 │   ├── MyClubView.vue
 │   ├── ClubView.vue
 │   ├── MatchesView.vue
-│   ├── NotificationsView.vue
 │   ├── QuickMatchView.vue
+│   ├── FindMatchView.vue
+│   ├── NotificationsView.vue
 │   └── SettingsView.vue
-├── App.vue
+├── App.vue                 # Hosts app-wide real-time subscriptions
 └── main.ts
 ```
 
@@ -93,6 +96,7 @@ The application follows a modular Vue 3 architecture:
 - **Stores** manage global application state using Pinia.
 - **Firebase** Firebase provides authentication and Firestore services.
 - **Router** manages navigation and protected routes.
+- **Real-time sync** — stores subscribe to Firestore via `onSnapshot` instead of one-off reads. Data shared across the whole app (clubs, notifications, the user profile cache) is subscribed once per session in `App.vue`; page-specific data (a club's roster, a match list) subscribes on mount and unsubscribes on unmount.
 
 ## Screenshots
 
