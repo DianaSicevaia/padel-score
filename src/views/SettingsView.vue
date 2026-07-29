@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUsersStore } from '@/stores/users'
-import type { PreferredSide, UserProfile } from '@/stores/users'
+import type { PreferredSide } from '@/stores/users'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 
 const authStore = useAuthStore()
@@ -13,11 +13,10 @@ const router = useRouter()
 const user = computed(() => authStore.user)
 
 // ── Global (site-wide) rating — from matches played without a club ──
-const globalProfile = ref<UserProfile | null>(null)
-
-onMounted(async () => {
-  if (authStore.user) globalProfile.value = await usersStore.fetchOwnProfile(authStore.user.uid)
-})
+// usersStore.allUsers is kept live app-wide (see App.vue).
+const globalProfile = computed(
+  () => usersStore.allUsers.find((u) => u.uid === authStore.user?.uid) ?? null,
+)
 
 const globalRatingText = computed(() => {
   const p = globalProfile.value
@@ -92,9 +91,7 @@ const saveProfile = async () => {
       authStore.updateUserProfile({ displayName: editName.value.trim() }),
       usersStore.updatePreferredSide(authStore.user.uid, editPreferredSide.value),
     ])
-    globalProfile.value = globalProfile.value
-      ? { ...globalProfile.value, preferredSide: editPreferredSide.value ?? undefined }
-      : globalProfile.value
+    // usersStore.allUsers (and so globalProfile) updates live once the write lands.
     isEditing.value = false
   } catch {
     saveError.value = 'Failed to save profile. Please try again.'

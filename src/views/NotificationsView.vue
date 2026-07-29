@@ -1,18 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useAuthStore } from '@/stores/auth'
+import { computed, ref } from 'vue'
 import { useNotificationsStore } from '@/stores/notifications'
 import type { AppNotification } from '@/stores/notifications'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 
-const authStore = useAuthStore()
+// notificationsStore.notifications is kept live app-wide (see App.vue).
 const notificationsStore = useNotificationsStore()
 
 const respondingId = ref<string | null>(null)
-
-onMounted(async () => {
-  if (authStore.user) await notificationsStore.fetchNotifications(authStore.user.uid)
-})
 
 const sorted = computed(() =>
   [...notificationsStore.notifications].sort((a, b) => b.createdAt - a.createdAt),

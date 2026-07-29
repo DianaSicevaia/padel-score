@@ -1,17 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useRouter, useRoute } from 'vue-router'
 
 const authStore = useAuthStore()
+// notificationsStore.notifications is kept live app-wide (see App.vue).
 const notificationsStore = useNotificationsStore()
 const router = useRouter()
 const route = useRoute()
-
-onMounted(() => {
-  if (authStore.user) void notificationsStore.fetchNotifications(authStore.user.uid)
-})
 
 const displayName = computed(() => {
   const user = authStore.user

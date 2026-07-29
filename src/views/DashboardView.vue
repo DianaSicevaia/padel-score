@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useClubsStore } from '@/stores/clubs'
 import { useMatchesStore } from '@/stores/matches'
@@ -10,7 +10,7 @@ import DashboardStatsRow from '@/components/dashboard/DashboardStatsRow.vue'
 import ClubRankingsPanel from '@/components/dashboard/ClubRankingsPanel.vue'
 import UpcomingMatchesPanel from '@/components/dashboard/UpcomingMatchesPanel.vue'
 import NewMatchModal from '@/components/dashboard/NewMatchModal.vue'
-import { collection, query, where, getDocs } from 'firebase/firestore'
+import { collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from '@/firebase'
 import type { Player } from '@/stores/players'
 import type { RankEntry } from '@/types/dashboard'
@@ -66,32 +66,60 @@ function weekStart(d: Date): number {
   return date.getTime()
 }
 
-onMounted(async () => {
+let unsubMyPlayers: (() => void) | null = null
+let unsubStandaloneMatches: (() => void) | null = null
+let unsubAllMatches: (() => void) | null = null
+let unsubClubPlayers: (() => void) | null = null
+
+onMounted(() => {
   if (!authStore.user) return
-  await clubsStore.fetchMyClubs()
   const uid = authStore.user.uid
-  const clubIds = clubsStore.clubs.map((c) => c.id)
 
-  const fetches: Promise<unknown>[] = [
-    getDocs(query(collection(db, 'players'), where('uid', '==', uid))).then((snap) => {
+  // clubsStore.clubs is kept live app-wide (see App.vue).
+  unsubMyPlayers = onSnapshot(
+    query(collection(db, 'players'), where('uid', '==', uid)),
+    (snap) => {
       myPlayers.value = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Player, 'id'>) }))
-    }),
-    matchesStore.fetchAllMatches(clubIds),
-    // Matches I'm invited to but haven't (yet) formally joined the club for.
-    matchesStore.fetchStandaloneMatches(uid),
-  ]
+    },
+  )
 
-  if (clubIds.length) {
-    fetches.push(
-      getDocs(query(collection(db, 'players'), where('clubId', 'in', clubIds))).then((snap) => {
-        allClubPlayers.value = snap.docs
-          .map((d) => ({ id: d.id, ...(d.data() as Omit<Player, 'id'>) }))
-          .filter((p) => !p.deletedAt)
-      }),
-    )
-  }
+  // Matches I'm invited to but haven't (yet) formally joined the club for.
+  unsubStandaloneMatches = matchesStore.subscribeStandaloneMatches(uid)
 
-  await Promise.all(fetches)
+  // Re-subscribe to club-scoped matches/players whenever the set of clubs
+  // I belong to changes (e.g. a new club invite gets accepted).
+  watch(
+    () => clubsStore.clubs.map((c) => c.id).join(','),
+    () => {
+      const clubIds = clubsStore.clubs.map((c) => c.id)
+
+      unsubAllMatches?.()
+      unsubAllMatches = matchesStore.subscribeAllMatches(clubIds)
+
+      unsubClubPlayers?.()
+      if (clubIds.length) {
+        unsubClubPlayers = onSnapshot(
+          query(collection(db, 'players'), where('clubId', 'in', clubIds)),
+          (snap) => {
+            allClubPlayers.value = snap.docs
+              .map((d) => ({ id: d.id, ...(d.data() as Omit<Player, 'id'>) }))
+              .filter((p) => !p.deletedAt)
+          },
+        )
+      } else {
+        allClubPlayers.value = []
+        unsubClubPlayers = null
+      }
+    },
+    { immediate: true },
+  )
+})
+
+onUnmounted(() => {
+  unsubMyPlayers?.()
+  unsubStandaloneMatches?.()
+  unsubAllMatches?.()
+  unsubClubPlayers?.()
 })
 
 const myPlayerIds = computed(() => new Set(myPlayers.value.map((p) => p.id)))

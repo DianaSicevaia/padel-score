@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { doc, getDoc } from 'firebase/firestore'
 import { db } from '@/firebase'
@@ -8,7 +8,6 @@ import type { Club } from '@/stores/clubs'
 import { useMatchesStore } from '@/stores/matches'
 import type { Match } from '@/stores/matches'
 import { useAuthStore } from '@/stores/auth'
-import { useUsersStore } from '@/stores/users'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import NewMatchModal from '@/components/dashboard/NewMatchModal.vue'
 import MatchesUpcomingSection from '@/components/matches/MatchesUpcomingSection.vue'
@@ -18,7 +17,6 @@ const router = useRouter()
 const clubsStore = useClubsStore()
 const matchesStore = useMatchesStore()
 const authStore = useAuthStore()
-const usersStore = useUsersStore()
 
 // Clubs the user isn't a member of, but is directly invited to play a match
 // in (fetched on demand so those matches can still show a real club name).
@@ -78,19 +76,28 @@ const goCreateStandalone = () => {
   router.push('/matches/new')
 }
 
-onMounted(async () => {
-  if (!clubsStore.clubs.length) await clubsStore.fetchMyClubs()
-  const fetches: Promise<unknown>[] = [matchesStore.fetchAllMatches(clubsStore.clubs.map((c) => c.id))]
-  if (authStore.user) fetches.push(matchesStore.fetchStandaloneMatches(authStore.user.uid))
-  await Promise.all(fetches)
+let unsubAllMatches: (() => void) | null = null
+let unsubStandaloneMatches: (() => void) | null = null
 
-  // Warm the profile cache so standalone match rows can show real photos.
-  const uids = Array.from(
-    new Set(
-      matchesStore.standaloneMatches.filter((m) => !m.clubId).flatMap((m) => m.participantUids ?? []),
-    ),
+onMounted(() => {
+  // clubsStore.clubs is kept live app-wide (see App.vue).
+  if (authStore.user) unsubStandaloneMatches = matchesStore.subscribeStandaloneMatches(authStore.user.uid)
+
+  // Re-subscribe to club-scoped matches whenever the set of clubs I belong
+  // to changes (e.g. a new club invite gets accepted).
+  watch(
+    () => clubsStore.clubs.map((c) => c.id).join(','),
+    () => {
+      unsubAllMatches?.()
+      unsubAllMatches = matchesStore.subscribeAllMatches(clubsStore.clubs.map((c) => c.id))
+    },
+    { immediate: true },
   )
-  if (uids.length) void usersStore.getUsersByUid(uids)
+})
+
+onUnmounted(() => {
+  unsubAllMatches?.()
+  unsubStandaloneMatches?.()
 })
 
 const isLoading = computed(

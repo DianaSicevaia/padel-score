@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
-import { collection, getDocs, getDoc, doc, updateDoc, setDoc } from 'firebase/firestore'
+import { watch } from 'vue'
+import { collection, onSnapshot, doc, updateDoc, setDoc } from 'firebase/firestore'
+import type { Unsubscribe } from 'firebase/firestore'
 import { db } from '@/firebase'
 
 export type PreferredSide = 'left' | 'right'
@@ -53,6 +55,8 @@ interface UsersState {
   searchLoading: boolean
 }
 
+let unsubscribeAllUsers: Unsubscribe | null = null
+
 export const useUsersStore = defineStore('users', {
   state: (): UsersState => ({
     allUsers: [],
@@ -62,11 +66,42 @@ export const useUsersStore = defineStore('users', {
   }),
 
   actions: {
+    // Live-subscribes to the whole users collection (used app-wide for
+    // avatars, ratings, search). Meant to be started once, globally, from
+    // App.vue; call the returned unsubscribe on logout.
+    subscribeAll(): Unsubscribe {
+      if (!unsubscribeAllUsers) {
+        this.allUsersLoaded = false
+        unsubscribeAllUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
+          this.allUsers = snapshot.docs.map((d) => normalizeUser(d.id, d.data() as RawUserData))
+          this.allUsersLoaded = true
+        })
+      }
+      return () => {
+        unsubscribeAllUsers?.()
+        unsubscribeAllUsers = null
+        this.allUsersLoaded = false
+      }
+    },
+
+    // Fallback for code paths that might run before App.vue's global
+    // subscription has started (e.g. very first render) — idempotent, and
+    // resolves once the first snapshot has populated the cache.
     async ensureAllUsersLoaded() {
       if (this.allUsersLoaded) return
-      const snapshot = await getDocs(collection(db, 'users'))
-      this.allUsers = snapshot.docs.map((d) => normalizeUser(d.id, d.data() as RawUserData))
-      this.allUsersLoaded = true
+      this.subscribeAll()
+      await new Promise<void>((resolve) => {
+        const stop = watch(
+          () => this.allUsersLoaded,
+          (loaded) => {
+            if (loaded) {
+              stop()
+              resolve()
+            }
+          },
+          { immediate: true },
+        )
+      })
     },
 
     async searchUsers(term: string) {
@@ -92,15 +127,6 @@ export const useUsersStore = defineStore('users', {
       return uids
         .map((uid) => this.allUsers.find((u) => u.uid === uid))
         .filter((u): u is UserProfile => !!u)
-    },
-
-    async fetchOwnProfile(uid: string): Promise<UserProfile | null> {
-      const snap = await getDoc(doc(db, 'users', uid))
-      if (!snap.exists()) return null
-      const profile = normalizeUser(uid, snap.data() as RawUserData)
-      const idx = this.allUsers.findIndex((u) => u.uid === uid)
-      if (idx !== -1) this.allUsers[idx] = profile
-      return profile
     },
 
     async updatePreferredSide(uid: string, side: PreferredSide | null) {

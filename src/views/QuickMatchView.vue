@@ -5,12 +5,10 @@ import SidebarNav from '@/components/layout/SidebarNav.vue'
 import QuickMatchForm from '@/components/quickmatch/QuickMatchForm.vue'
 import { useMatchesStore, OPEN_SLOT_ID } from '@/stores/matches'
 import type { StandaloneParticipant } from '@/stores/matches'
-import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
 const matchesStore = useMatchesStore()
-const authStore = useAuthStore()
 
 const goBack = () => router.push('/matches')
 const onSaved = () => router.push('/matches')
@@ -27,10 +25,7 @@ const toParticipants = (ids: string[], names?: string[]): StandaloneParticipant[
 onMounted(async () => {
   const matchId = route.query.playNow as string | undefined
   if (!matchId) return
-  if (!matchesStore.standaloneMatches.length && authStore.user) {
-    await matchesStore.fetchStandaloneMatches(authStore.user.uid)
-  }
-  const match = matchesStore.standaloneMatches.find((m) => m.id === matchId)
+  const match = await matchesStore.fetchMatchById(matchId)
   // Can't record a score while a slot is still unclaimed.
   if (!match || match.hasOpenSlot) return
   await matchesStore.cancelScheduledMatch(match.id)

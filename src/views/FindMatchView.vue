@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useMatchesStore, OPEN_SLOT_ID } from '@/stores/matches'
 import type { Match } from '@/stores/matches'
@@ -15,13 +15,16 @@ const usersStore = useUsersStore()
 const joiningKey = ref<string | null>(null)
 const joinError = ref('')
 
-onMounted(async () => {
-  if (!authStore.user) return
-  await matchesStore.fetchOpenMatches(authStore.user.uid)
-  const uids = Array.from(
-    new Set(matchesStore.openMatches.flatMap((m) => m.participantUids ?? [])),
-  )
-  if (uids.length) void usersStore.getUsersByUid(uids)
+let unsubOpenMatches: (() => void) | null = null
+
+onMounted(() => {
+  // usersStore.allUsers is kept live app-wide (see App.vue), so player
+  // photos resolve automatically once loaded.
+  if (authStore.user) unsubOpenMatches = matchesStore.subscribeOpenMatches(authStore.user.uid)
+})
+
+onUnmounted(() => {
+  unsubOpenMatches?.()
 })
 
 const myName = computed(
@@ -63,8 +66,8 @@ const join = async (match: Match, side: 'A' | 'B') => {
   try {
     await matchesStore.joinOpenSlot(match.id, side, authStore.user.uid, myName.value)
   } catch {
+    // The live subscription will reconcile the list on its own shortly.
     joinError.value = 'This slot was just taken — try another match.'
-    await matchesStore.fetchOpenMatches(authStore.user.uid)
   } finally {
     joiningKey.value = null
   }

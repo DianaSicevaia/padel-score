@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, arrayUnion } from 'firebase/firestore'
+import { collection, query, where, onSnapshot, addDoc, updateDoc, doc, arrayUnion } from 'firebase/firestore'
+import type { Unsubscribe } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { useAuthStore } from '@/stores/auth'
 
@@ -25,32 +26,52 @@ export const useClubsStore = defineStore('clubs', {
   }),
 
   actions: {
-    async fetchMyClubs() {
+    // Live-subscribes to clubs the user owns or is a member of, merging both
+    // listeners into `clubs`. Call the returned unsubscribe on unmount.
+    subscribeMyClubs(): Unsubscribe {
       const authStore = useAuthStore()
-      if (!authStore.user) return
+      if (!authStore.user) return () => {}
+      const uid = authStore.user.uid
 
       this.loading = true
-      try {
-        const uid = authStore.user.uid
+      let owned: Club[] = []
+      let member: Club[] = []
+      let ownedReady = false
+      let memberReady = false
 
-        const [ownedSnap, memberSnap] = await Promise.all([
-          getDocs(query(collection(db, 'clubs'), where('ownerId', '==', uid))),
-          getDocs(query(collection(db, 'clubs'), where('memberIds', 'array-contains', uid))),
-        ])
-
+      const merge = () => {
         const seen = new Set<string>()
-        const clubs: Club[] = []
-        for (const snap of [ownedSnap, memberSnap]) {
-          for (const d of snap.docs) {
-            if (!seen.has(d.id)) {
-              seen.add(d.id)
-              clubs.push({ id: d.id, ...(d.data() as Omit<Club, 'id'>) })
-            }
+        const merged: Club[] = []
+        for (const c of [...owned, ...member]) {
+          if (!seen.has(c.id)) {
+            seen.add(c.id)
+            merged.push(c)
           }
         }
-        this.clubs = clubs.filter(c => !c.deletedAt)
-      } finally {
-        this.loading = false
+        this.clubs = merged.filter((c) => !c.deletedAt)
+        if (ownedReady && memberReady) this.loading = false
+      }
+
+      const unsubOwned = onSnapshot(
+        query(collection(db, 'clubs'), where('ownerId', '==', uid)),
+        (snap) => {
+          owned = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Club, 'id'>) }))
+          ownedReady = true
+          merge()
+        },
+      )
+      const unsubMember = onSnapshot(
+        query(collection(db, 'clubs'), where('memberIds', 'array-contains', uid)),
+        (snap) => {
+          member = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Club, 'id'>) }))
+          memberReady = true
+          merge()
+        },
+      )
+
+      return () => {
+        unsubOwned()
+        unsubMember()
       }
     },
 
