@@ -3,13 +3,15 @@ import {
   collection,
   query,
   where,
-  getDocs,
+  getDoc,
+  onSnapshot,
   addDoc,
   updateDoc,
   deleteDoc,
   doc,
   runTransaction,
 } from 'firebase/firestore'
+import type { Unsubscribe } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { usePlayersStore } from '@/stores/players'
 import type { Player } from '@/stores/players'
@@ -125,50 +127,52 @@ export const useMatchesStore = defineStore('matches', {
   }),
 
   actions: {
-    async fetchMatches(clubId: string) {
+    // Live-subscribes to a single club's matches.
+    subscribeMatches(clubId: string): Unsubscribe {
       this.loading = true
-      this.matches = []
-      try {
-        const q = query(collection(db, 'matches'), where('clubId', '==', clubId))
-        const snapshot = await getDocs(q)
+      const q = query(collection(db, 'matches'), where('clubId', '==', clubId))
+      return onSnapshot(q, (snapshot) => {
         this.matches = snapshot.docs
           .map((d) => ({ id: d.id, ...(d.data() as Omit<Match, 'id'>) }))
           .sort((a, b) => b.createdAt - a.createdAt)
-      } finally {
         this.loading = false
-      }
+      })
     },
 
-    async fetchAllMatches(clubIds: string[]) {
+    // Live-subscribes to matches across every club the user belongs to.
+    subscribeAllMatches(clubIds: string[]): Unsubscribe {
       if (!clubIds.length) {
         this.allMatches = []
-        return
+        return () => {}
       }
       this.allLoading = true
-      this.allMatches = []
-      try {
-        const q = query(collection(db, 'matches'), where('clubId', 'in', clubIds))
-        const snapshot = await getDocs(q)
+      const q = query(collection(db, 'matches'), where('clubId', 'in', clubIds))
+      return onSnapshot(q, (snapshot) => {
         this.allMatches = snapshot.docs
           .map((d) => ({ id: d.id, ...(d.data() as Omit<Match, 'id'>) }))
           .sort((a, b) => b.createdAt - a.createdAt)
-      } finally {
         this.allLoading = false
-      }
+      })
     },
 
-    async fetchStandaloneMatches(uid: string) {
+    // Live-subscribes to matches the user directly participates in (used for
+    // standalone/no-club matches, and matches in clubs they haven't joined).
+    subscribeStandaloneMatches(uid: string): Unsubscribe {
       this.standaloneLoading = true
-      this.standaloneMatches = []
-      try {
-        const q = query(collection(db, 'matches'), where('participantUids', 'array-contains', uid))
-        const snapshot = await getDocs(q)
+      const q = query(collection(db, 'matches'), where('participantUids', 'array-contains', uid))
+      return onSnapshot(q, (snapshot) => {
         this.standaloneMatches = snapshot.docs
           .map((d) => ({ id: d.id, ...(d.data() as Omit<Match, 'id'>) }))
           .sort((a, b) => b.createdAt - a.createdAt)
-      } finally {
         this.standaloneLoading = false
-      }
+      })
+    },
+
+    // One-off lookup for a single match by id (e.g. the "Play now" flow,
+    // which just needs a snapshot to prefill a form, not a live view).
+    async fetchMatchById(matchId: string): Promise<Match | null> {
+      const snap = await getDoc(doc(db, 'matches', matchId))
+      return snap.exists() ? { id: snap.id, ...(snap.data() as Omit<Match, 'id'>) } : null
     },
 
     async createStandaloneMatch(
@@ -514,12 +518,11 @@ export const useMatchesStore = defineStore('matches', {
       }
     },
 
-    async fetchOpenMatches(excludeUid?: string) {
+    // Live-subscribes to matches anyone can still join.
+    subscribeOpenMatches(excludeUid?: string): Unsubscribe {
       this.openLoading = true
-      this.openMatches = []
-      try {
-        const q = query(collection(db, 'matches'), where('hasOpenSlot', '==', true))
-        const snapshot = await getDocs(q)
+      const q = query(collection(db, 'matches'), where('hasOpenSlot', '==', true))
+      return onSnapshot(q, (snapshot) => {
         const now = Date.now()
         this.openMatches = snapshot.docs
           .map((d) => ({ id: d.id, ...(d.data() as Omit<Match, 'id'>) }))
@@ -532,9 +535,8 @@ export const useMatchesStore = defineStore('matches', {
               (!excludeUid || !m.participantUids?.includes(excludeUid)),
           )
           .sort((a, b) => (a.scheduledAt ?? 0) - (b.scheduledAt ?? 0))
-      } finally {
         this.openLoading = false
-      }
+      })
     },
 
     async joinOpenSlot(matchId: string, side: 'A' | 'B', joinerUid: string, joinerName: string) {

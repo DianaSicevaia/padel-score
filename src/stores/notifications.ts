@@ -5,12 +5,14 @@ import {
   where,
   getDocs,
   getDoc,
+  onSnapshot,
   addDoc,
   updateDoc,
   deleteDoc,
   deleteField,
   doc,
 } from 'firebase/firestore'
+import type { Unsubscribe } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { useClubsStore } from '@/stores/clubs'
 
@@ -47,17 +49,17 @@ export const useNotificationsStore = defineStore('notifications', {
   },
 
   actions: {
-    async fetchNotifications(uid: string) {
+    // Live-subscribes to this user's notifications (bell badge + list).
+    // Meant to be started once, globally, from App.vue.
+    subscribeNotifications(uid: string): Unsubscribe {
       this.loading = true
-      try {
-        const q = query(collection(db, 'notifications'), where('uid', '==', uid))
-        const snapshot = await getDocs(q)
+      const q = query(collection(db, 'notifications'), where('uid', '==', uid))
+      return onSnapshot(q, (snapshot) => {
         this.notifications = snapshot.docs
           .map((d) => ({ id: d.id, ...(d.data() as Omit<AppNotification, 'id'>) }))
           .sort((a, b) => b.createdAt - a.createdAt)
-      } finally {
         this.loading = false
-      }
+      })
     },
 
     async createClubInviteNotification(uid: string, clubId: string, clubName: string) {

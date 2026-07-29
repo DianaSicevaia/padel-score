@@ -17,8 +17,8 @@ const showForm = ref(false)
 const openForm = () => { showForm.value = true }
 const closeForm = () => { showForm.value = false }
 
-onMounted(async () => {
-  await clubsStore.fetchMyClubs()
+onMounted(() => {
+  // clubsStore.clubs is kept live app-wide (see App.vue).
   if (route.query.create === '1') {
     openForm()
     router.replace({ query: {} })

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useClubsStore } from '@/stores/clubs'
 import { usePlayersStore } from '@/stores/players'
@@ -8,7 +8,6 @@ import { useMatchesStore } from '@/stores/matches'
 import type { Match } from '@/stores/matches'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
-import { useUsersStore } from '@/stores/users'
 import ClubPlayersPanel from '@/components/club/ClubPlayersPanel.vue'
 import MatchForm from '@/components/club/MatchForm.vue'
 import MatchRow from '@/components/club/MatchRow.vue'
@@ -21,7 +20,6 @@ const playersStore = usePlayersStore()
 const matchesStore = useMatchesStore()
 const authStore = useAuthStore()
 const notificationsStore = useNotificationsStore()
-const usersStore = useUsersStore()
 
 const currentUid = computed(() => authStore.user?.uid ?? null)
 const myPlayer = computed(() =>
@@ -88,25 +86,29 @@ const scheduledMatches = computed(() =>
 const completedMatches = computed(() => matchesStore.matches.filter((m) => !!m.winnerTeam))
 
 // ── Bootstrap ──────────────────────────────────────
+let unsubPlayers: (() => void) | null = null
+let unsubMatches: (() => void) | null = null
+
 onMounted(async () => {
-  if (!clubsStore.clubs.length) await clubsStore.fetchMyClubs()
-  await Promise.all([
-    playersStore.fetchPlayers(clubId.value),
-    matchesStore.fetchMatches(clubId.value),
-  ])
-  // Warm the profile cache so match rows can show each player's photo.
-  const uids = playersStore.players.map((p) => p.uid).filter((u): u is string => !!u)
-  if (uids.length) void usersStore.getUsersByUid(uids)
+  // clubsStore.clubs is kept live app-wide (see App.vue) — no fetch needed here.
+  unsubPlayers = playersStore.subscribePlayers(clubId.value)
+  unsubMatches = matchesStore.subscribeMatches(clubId.value)
+
   if (route.query.newMatch === '1') {
     openMatchForm()
     router.replace({ params: route.params, query: {} })
   }
   if (route.query.playNow) {
     const matchId = route.query.playNow as string
-    const m = matchesStore.matches.find((m) => m.id === matchId)
+    const m = await matchesStore.fetchMatchById(matchId)
     if (m) await handlePlayNow(m)
     router.replace({ params: route.params, query: {} })
   }
+})
+
+onUnmounted(() => {
+  unsubPlayers?.()
+  unsubMatches?.()
 })
 </script>
 

@@ -4,12 +4,14 @@ import {
   query,
   where,
   getDocs,
+  onSnapshot,
   addDoc,
   updateDoc,
   deleteDoc,
   doc,
   limit,
 } from 'firebase/firestore'
+import type { Unsubscribe } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { useClubsStore } from '@/stores/clubs'
 import { useAuthStore } from '@/stores/auth'
@@ -46,18 +48,16 @@ export const usePlayersStore = defineStore('players', {
   }),
 
   actions: {
-    async fetchPlayers(clubId: string) {
+    // Live-subscribes to a club's player roster.
+    subscribePlayers(clubId: string): Unsubscribe {
       this.loading = true
-      this.players = []
-      try {
-        const q = query(collection(db, 'players'), where('clubId', '==', clubId))
-        const snapshot = await getDocs(q)
+      const q = query(collection(db, 'players'), where('clubId', '==', clubId))
+      return onSnapshot(q, (snapshot) => {
         this.players = snapshot.docs
-          .map(d => ({ id: d.id, ...(d.data() as Omit<Player, 'id'>) }))
-          .filter(p => !p.deletedAt)
-      } finally {
+          .map((d) => ({ id: d.id, ...(d.data() as Omit<Player, 'id'>) }))
+          .filter((p) => !p.deletedAt)
         this.loading = false
-      }
+      })
     },
 
     async createPlayer(clubId: string, name: string, uid?: string) {
