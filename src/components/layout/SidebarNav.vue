@@ -2,11 +2,14 @@
 import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useUsersStore } from '@/stores/users'
 import { useRouter, useRoute } from 'vue-router'
+import PlayerAvatar from '@/components/shared/PlayerAvatar.vue'
 
 const authStore = useAuthStore()
-// notificationsStore.notifications is kept live app-wide (see App.vue).
+// notificationsStore.notifications and usersStore.allUsers are kept live app-wide
 const notificationsStore = useNotificationsStore()
+const usersStore = useUsersStore()
 const router = useRouter()
 const route = useRoute()
 
@@ -16,12 +19,9 @@ const displayName = computed(() => {
   return user.displayName || user.email?.split('@')[0] || 'Player'
 })
 
-const initials = computed(() => {
-  const name = displayName.value
-  const parts = name.trim().split(/[\s._-]+/)
-  if (parts.length >= 2) return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase()
-  return name.slice(0, 2).toUpperCase()
-})
+const myAvatarBackground = computed(
+  () => usersStore.allUsers.find((u) => u.uid === authStore.user?.uid)?.avatarBackground,
+)
 </script>
 
 <template>
@@ -188,7 +188,11 @@ const initials = computed(() => {
         </svg>
         Schedule
       </a>
-      <a class="sb-nav-item" :class="{ 'sb-nav-item--active': route.path === '/settings' }" @click="router.push('/settings')">
+      <a
+        class="sb-nav-item"
+        :class="{ 'sb-nav-item--active': route.path === '/settings' }"
+        @click="router.push('/settings')"
+      >
         <svg
           width="20"
           height="20"
@@ -212,10 +216,13 @@ const initials = computed(() => {
     <div class="sb-spacer"></div>
 
     <div class="sb-user">
-      <div class="sb-user-avatar">
-        <img v-if="authStore.user?.photoURL" :src="authStore.user.photoURL" :alt="displayName" class="sb-user-avatar-img" />
-        <span v-else>{{ initials }}</span>
-      </div>
+      <PlayerAvatar
+        class="sb-user-avatar"
+        :name="displayName"
+        :photoUrl="authStore.user?.photoURL"
+        :backgroundId="myAvatarBackground"
+        :size="36"
+      />
       <div class="sb-user-info">
         <span class="sb-user-name">{{ displayName }}</span>
         <span class="sb-user-role">Club Captain</span>
@@ -339,28 +346,6 @@ const initials = computed(() => {
   padding-top: 12px;
   border-top: 1px solid var(--color-bg-soft);
   margin-top: 4px;
-}
-
-.sb-user-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 999px;
-  background: var(--color-bg-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: 'Inter', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-.sb-user-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .sb-user-name {

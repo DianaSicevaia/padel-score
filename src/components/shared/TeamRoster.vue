@@ -5,6 +5,7 @@ export interface RosterPlayer {
   id: string
   name: string
   photoUrl?: string | null
+  backgroundId?: string | null
   pending?: boolean
   isOpen?: boolean
 }
@@ -40,10 +41,22 @@ withDefaults(
           <span class="roster-player-name">{{ p.name }}</span>
           <span v-if="p.pending" class="roster-player-badge">Invited</span>
         </div>
-        <PlayerAvatar :name="p.name" :photoUrl="p.photoUrl" :size="avatarSize" />
+        <PlayerAvatar
+          :id="p.id"
+          :name="p.name"
+          :photoUrl="p.photoUrl"
+          :backgroundId="p.backgroundId"
+          :size="avatarSize"
+        />
       </template>
       <template v-else>
-        <PlayerAvatar :name="p.name" :photoUrl="p.photoUrl" :size="avatarSize" />
+        <PlayerAvatar
+          :id="p.id"
+          :name="p.name"
+          :photoUrl="p.photoUrl"
+          :backgroundId="p.backgroundId"
+          :size="avatarSize"
+        />
         <div class="roster-player-info">
           <span class="roster-player-name">{{ p.name }}</span>
           <span v-if="p.pending" class="roster-player-badge">Invited</span>

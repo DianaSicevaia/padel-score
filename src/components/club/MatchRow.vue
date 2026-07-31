@@ -24,10 +24,13 @@ const expanded = ref(false)
 const resolveRoster = (ids: string[], names?: string[]): RosterPlayer[] =>
   ids.map((id, i) => {
     const player = props.players.find((p) => p.id === id)
-    const photoUrl = player?.uid
-      ? usersStore.allUsers.find((u) => u.uid === player.uid)?.photoUrl
-      : undefined
-    return { id, name: names?.[i] ?? player?.name ?? id, photoUrl }
+    const profile = player?.uid ? usersStore.allUsers.find((u) => u.uid === player.uid) : undefined
+    return {
+      id,
+      name: names?.[i] ?? player?.name ?? id,
+      photoUrl: profile?.photoUrl,
+      backgroundId: profile?.avatarBackground,
+    }
   })
 
 const displaySets = (match: Match) =>

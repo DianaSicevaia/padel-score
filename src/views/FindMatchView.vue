@@ -40,10 +40,16 @@ const teamRoster = (m: Match, side: 'A' | 'B'): RosterPlayer[] => {
     const name = names?.[i] ?? id
     const isOpen = id === OPEN_SLOT_ID
     const isGuest = id.startsWith('guest-')
-    const photoUrl =
-      !isOpen && !isGuest ? usersStore.allUsers.find((u) => u.uid === id)?.photoUrl : undefined
+    const profile = !isOpen && !isGuest ? usersStore.allUsers.find((u) => u.uid === id) : undefined
     const pending = !!m.pendingUids?.includes(id)
-    return { id, name, photoUrl, pending, isOpen }
+    return {
+      id,
+      name,
+      photoUrl: profile?.photoUrl,
+      backgroundId: profile?.avatarBackground,
+      pending,
+      isOpen,
+    }
   })
 }
 

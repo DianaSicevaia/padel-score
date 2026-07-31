@@ -28,10 +28,16 @@ const teamRoster = (m: Match, side: 'A' | 'B'): RosterPlayer[] => {
     const isOpen = id === OPEN_SLOT_ID
     if (m.clubId) return { id, name, isOpen }
     const isGuest = id.startsWith('guest-')
-    const photoUrl =
-      !isOpen && !isGuest ? usersStore.allUsers.find((u) => u.uid === id)?.photoUrl : undefined
+    const profile = !isOpen && !isGuest ? usersStore.allUsers.find((u) => u.uid === id) : undefined
     const pending = !!m.pendingUids?.includes(id)
-    return { id, name, photoUrl, pending, isOpen }
+    return {
+      id,
+      name,
+      photoUrl: profile?.photoUrl,
+      backgroundId: profile?.avatarBackground,
+      pending,
+      isOpen,
+    }
   })
 }
 
@@ -185,8 +191,8 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
 
 .upcoming-match-row {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
   padding: 12px 20px;
   background: var(--color-bg-info);
 }
@@ -195,15 +201,12 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
   display: flex;
   align-items: center;
   gap: 10px;
-  flex: 1;
-  min-width: 0;
 }
 
 .upcoming-roster {
   flex: 1;
   min-width: 0;
 }
-
 
 .upcoming-vs {
   font-family: 'Geist Mono', monospace;
@@ -216,8 +219,8 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
 .upcoming-right {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  flex-shrink: 0;
 }
 
 .match-date {
