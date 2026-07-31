@@ -4,7 +4,9 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUsersStore } from '@/stores/users'
 import type { PreferredSide } from '@/stores/users'
+import { AVATAR_BACKGROUNDS } from '@/utils/avatarBackgrounds'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
+import PlayerAvatar from '@/components/shared/PlayerAvatar.vue'
 
 const authStore = useAuthStore()
 const usersStore = useUsersStore()
@@ -42,13 +44,6 @@ const displayName = computed(() => {
   return user.value.displayName || user.value.email?.split('@')[0] || 'Player'
 })
 
-const initials = computed(() => {
-  const name = displayName.value
-  const parts = name.trim().split(/[\s._-]+/)
-  if (parts.length >= 2) return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase()
-  return name.slice(0, 2).toUpperCase()
-})
-
 const memberSince = computed(() => {
   const t = user.value?.metadata.creationTime
   if (!t) return ''
@@ -64,12 +59,14 @@ const logout = async () => {
 const isEditing = ref(false)
 const editName = ref('')
 const editPreferredSide = ref<PreferredSide | null>(null)
+const editAvatarBackground = ref<string | null>(null)
 const saving = ref(false)
 const saveError = ref('')
 
 const startEdit = () => {
   editName.value = displayName.value
   editPreferredSide.value = globalProfile.value?.preferredSide ?? null
+  editAvatarBackground.value = globalProfile.value?.avatarBackground ?? null
   saveError.value = ''
   isEditing.value = true
 }
@@ -90,6 +87,7 @@ const saveProfile = async () => {
     await Promise.all([
       authStore.updateUserProfile({ displayName: editName.value.trim() }),
       usersStore.updatePreferredSide(authStore.user.uid, editPreferredSide.value),
+      usersStore.updateAvatarBackground(authStore.user.uid, editAvatarBackground.value),
     ])
     // usersStore.allUsers (and so globalProfile) updates live once the write lands.
     isEditing.value = false
@@ -146,15 +144,13 @@ const saveProfile = async () => {
 
           <!-- View mode -->
           <div v-if="!isEditing" class="profile-body">
-            <div class="profile-avatar">
-              <img
-                v-if="user?.photoURL"
-                :src="user.photoURL"
-                :alt="displayName"
-                class="avatar-img"
-              />
-              <span v-else class="avatar-initials">{{ initials }}</span>
-            </div>
+            <PlayerAvatar
+              class="profile-avatar"
+              :name="displayName"
+              :photoUrl="user?.photoURL"
+              :backgroundId="globalProfile?.avatarBackground"
+              :size="72"
+            />
             <div class="profile-info">
               <span class="profile-name">{{ displayName }}</span>
               <span class="profile-email">{{ user?.email ?? '—' }}</span>
@@ -167,14 +163,27 @@ const saveProfile = async () => {
 
           <!-- Edit mode -->
           <div v-else class="profile-edit-body">
-            <div class="profile-avatar">
-              <img
-                v-if="user?.photoURL"
-                :src="user.photoURL"
-                :alt="displayName"
-                class="avatar-img"
+            <div class="profile-edit-avatar-col">
+              <PlayerAvatar
+                class="profile-avatar"
+                :name="displayName"
+                :photoUrl="user?.photoURL"
+                :backgroundId="editAvatarBackground"
+                :size="72"
               />
-              <span v-else class="avatar-initials">{{ initials }}</span>
+              <div v-if="!user?.photoURL" class="bg-swatches">
+                <button
+                  v-for="bg in AVATAR_BACKGROUNDS"
+                  :key="bg.id"
+                  type="button"
+                  class="bg-swatch"
+                  :class="{ 'bg-swatch--active': editAvatarBackground === bg.id }"
+                  :style="{ backgroundImage: `url(${bg.src})` }"
+                  :title="bg.label"
+                  :aria-label="bg.label"
+                  @click="editAvatarBackground = bg.id"
+                ></button>
+              </div>
             </div>
             <div class="edit-fields">
               <label class="field-label">Display name</label>
@@ -436,31 +445,6 @@ const saveProfile = async () => {
   padding: 24px 20px;
 }
 
-.profile-avatar {
-  width: 72px;
-  height: 72px;
-  border-radius: 999px;
-  background: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-.avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-initials {
-  font-family: 'Anton', sans-serif;
-  font-size: 28px;
-  color: var(--color-white);
-  font-weight: normal;
-}
-
 .profile-info {
   display: flex;
   flex-direction: column;
@@ -474,6 +458,40 @@ const saveProfile = async () => {
   align-items: flex-start;
   gap: 20px;
   padding: 24px 20px;
+}
+
+.profile-edit-avatar-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.bg-swatches {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.bg-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+  padding: 0;
+  transition: border-color 0.15s, transform 0.1s;
+}
+
+.bg-swatch:hover {
+  transform: scale(1.08);
+}
+
+.bg-swatch--active {
+  border-color: var(--color-accent);
 }
 
 .edit-fields {

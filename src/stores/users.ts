@@ -17,6 +17,7 @@ export interface UserProfile {
   losses: number
   createdAt: number
   preferredSide?: PreferredSide
+  avatarBackground?: string
 }
 
 interface RawUserData {
@@ -29,6 +30,7 @@ interface RawUserData {
   losses?: number
   createdAt?: number
   preferredSide?: PreferredSide | null
+  avatarBackground?: string | null
 }
 
 export const START_RATING = 1000
@@ -45,6 +47,7 @@ function normalizeUser(uid: string, data: RawUserData): UserProfile {
     losses: data.losses ?? 0,
     createdAt: data.createdAt ?? 0,
     preferredSide: data.preferredSide ?? undefined,
+    avatarBackground: data.avatarBackground ?? undefined,
   }
 }
 
@@ -134,6 +137,16 @@ export const useUsersStore = defineStore('users', {
       const idx = this.allUsers.findIndex((u) => u.uid === uid)
       if (idx !== -1)
         this.allUsers[idx] = { ...this.allUsers[idx]!, preferredSide: side ?? undefined }
+    },
+
+    // Lets a user pick one of the fixed court-texture backgrounds for when
+    // they don't have a profile photo — not a photo upload, just a choice
+    // among a fixed set.
+    async updateAvatarBackground(uid: string, backgroundId: string | null) {
+      await setDoc(doc(db, 'users', uid), { avatarBackground: backgroundId }, { merge: true })
+      const idx = this.allUsers.findIndex((u) => u.uid === uid)
+      if (idx !== -1)
+        this.allUsers[idx] = { ...this.allUsers[idx]!, avatarBackground: backgroundId ?? undefined }
     },
 
     async applyMatchResult(

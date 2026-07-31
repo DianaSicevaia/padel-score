@@ -36,9 +36,8 @@ const teamRoster = (m: Match, side: 'A' | 'B'): RosterPlayer[] => {
     if (m.clubId) return { id, name }
     const isOpen = id === OPEN_SLOT_ID
     const isGuest = id.startsWith('guest-')
-    const photoUrl =
-      !isOpen && !isGuest ? usersStore.allUsers.find((u) => u.uid === id)?.photoUrl : undefined
-    return { id, name, photoUrl, isOpen }
+    const profile = !isOpen && !isGuest ? usersStore.allUsers.find((u) => u.uid === id) : undefined
+    return { id, name, photoUrl: profile?.photoUrl, backgroundId: profile?.avatarBackground, isOpen }
   })
 }
 

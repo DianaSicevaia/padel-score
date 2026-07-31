@@ -30,11 +30,15 @@ const editTime = ref('')
 const resolveRoster = (ids: string[], names?: string[]): RosterPlayer[] =>
   ids.map((id, i) => {
     const player = props.players.find((p) => p.id === id)
-    const photoUrl = player?.uid
-      ? usersStore.allUsers.find((u) => u.uid === player.uid)?.photoUrl
-      : undefined
+    const profile = player?.uid ? usersStore.allUsers.find((u) => u.uid === player.uid) : undefined
     const pending = !!player?.uid && !!props.match.pendingUids?.includes(player.uid)
-    return { id, name: names?.[i] ?? player?.name ?? id, photoUrl, pending }
+    return {
+      id,
+      name: names?.[i] ?? player?.name ?? id,
+      photoUrl: profile?.photoUrl,
+      backgroundId: profile?.avatarBackground,
+      pending,
+    }
   })
 
 const teamAPlayers = computed(() => resolveRoster(props.match.teamA, props.match.teamANames))
