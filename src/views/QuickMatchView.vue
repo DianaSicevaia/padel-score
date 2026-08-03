@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
+import MobileTopBar from '@/components/layout/MobileTopBar.vue'
 import QuickMatchForm from '@/components/quickmatch/QuickMatchForm.vue'
 import { useMatchesStore, OPEN_SLOT_ID } from '@/stores/matches'
 import type { StandaloneParticipant } from '@/stores/matches'
@@ -40,6 +41,8 @@ onMounted(async () => {
     <SidebarNav />
 
     <div class="main">
+      <MobileTopBar mode="back" back-to="/matches" />
+
       <div class="content">
         <div class="page-hdr">
           <button class="btn-back" @click="goBack">
@@ -140,6 +143,12 @@ onMounted(async () => {
 }
 
 @media (max-width: 768px) {
+  .page {
+    flex-direction: column;
+    height: 100svh;
+    height: 100vh;
+  }
+
   .content {
     padding: 20px 16px;
   }

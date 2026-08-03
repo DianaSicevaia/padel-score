@@ -2,17 +2,18 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useClubsStore } from '@/stores/clubs'
-import { useNotificationsStore } from '@/stores/notifications'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
+import MobileTopBar from '@/components/layout/MobileTopBar.vue'
+import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
 import CreateClubForm from '@/components/myclub/CreateClubForm.vue'
 import ClubListPanel from '@/components/myclub/ClubListPanel.vue'
 
 const router = useRouter()
 const route = useRoute()
 const clubsStore = useClubsStore()
-const notificationsStore = useNotificationsStore()
 
 const showForm = ref(false)
+const mobileMenuOpen = ref(false)
 
 const openForm = () => { showForm.value = true }
 const closeForm = () => { showForm.value = false }
@@ -28,30 +29,10 @@ onMounted(() => {
 
 <template>
   <div class="page">
-    <SidebarNav />
+    <SidebarNav :mobile-open="mobileMenuOpen" @close="mobileMenuOpen = false" />
 
     <div class="main">
-      <!-- Mobile top bar -->
-      <header class="m-topbar">
-        <button class="m-topbar-btn" aria-label="Menu">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
-        </button>
-        <div class="m-topbar-logo">
-          <div class="m-logo-icon">P</div>
-          <span class="m-logo-text">Padel Club</span>
-        </div>
-        <button class="m-topbar-btn" aria-label="Notifications" @click="router.push('/notifications')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-          </svg>
-          <span v-if="notificationsStore.unreadCount > 0" class="notif-dot"></span>
-        </button>
-      </header>
+      <MobileTopBar @menu-click="mobileMenuOpen = true" />
 
       <!-- Content -->
       <div class="content">
@@ -102,43 +83,7 @@ onMounted(() => {
         </template>
       </div>
 
-      <!-- Mobile bottom nav -->
-      <nav class="m-bottom-nav">
-        <button class="m-nav-item" @click="router.push('/dashboard')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-            <polyline points="9 22 9 12 15 12 15 22" />
-          </svg>
-          <span>Home</span>
-        </button>
-        <button class="m-nav-item" @click="router.push('/matches')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-            <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-            <path d="M4 22h16" />
-            <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-          </svg>
-          <span>Matches</span>
-        </button>
-        <button class="m-nav-item m-nav-item--active">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-          <span>Club</span>
-        </button>
-        <button class="m-nav-item" @click="router.push('/settings')">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-            <circle cx="12" cy="7" r="4" />
-          </svg>
-          <span>Profile</span>
-        </button>
-      </nav>
+      <MobileBottomNav active="club" />
     </div>
   </div>
 </template>
@@ -158,14 +103,6 @@ onMounted(() => {
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
-}
-
-.m-topbar {
-  display: none;
-}
-
-.m-bottom-nav {
-  display: none;
 }
 
 .content {
@@ -301,65 +238,6 @@ onMounted(() => {
     height: 100vh;
   }
 
-  .m-topbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 14px 20px;
-    background: var(--color-white);
-    flex-shrink: 0;
-  }
-
-  .m-topbar-btn {
-    position: relative;
-    background: none;
-    border: none;
-    padding: 0;
-    cursor: pointer;
-    color: var(--color-text);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .notif-dot {
-    position: absolute;
-    top: 1px;
-    right: 1px;
-    width: 8px;
-    height: 8px;
-    border-radius: 999px;
-    background: var(--color-danger);
-    border: 1.5px solid var(--color-white);
-  }
-
-  .m-topbar-logo {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .m-logo-icon {
-    width: 28px;
-    height: 28px;
-    background: var(--color-primary);
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Anton', sans-serif;
-    font-size: 14px;
-    color: var(--color-white);
-    font-weight: normal;
-  }
-
-  .m-logo-text {
-    font-family: 'Anton', sans-serif;
-    font-size: 18px;
-    color: var(--color-text);
-    font-weight: normal;
-  }
-
   .content {
     padding: 20px 16px;
     gap: 20px;
@@ -367,37 +245,6 @@ onMounted(() => {
 
   .page-title {
     font-size: 22px;
-  }
-
-  .m-bottom-nav {
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    padding: 10px 0;
-    background: var(--color-white);
-    box-shadow: 0 -1px 4px rgba(0, 0, 0, 0.08);
-    flex-shrink: 0;
-  }
-
-  .m-nav-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    padding: 6px 16px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--color-text-muted);
-    font-family: 'Inter', sans-serif;
-    font-size: 10px;
-    font-weight: 400;
-  }
-
-  .m-nav-item--active {
-    color: var(--color-accent);
-    font-weight: 600;
   }
 }
 </style>

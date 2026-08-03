@@ -3,10 +3,13 @@ import { computed, ref } from 'vue'
 import { useNotificationsStore } from '@/stores/notifications'
 import type { AppNotification } from '@/stores/notifications'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
+import MobileTopBar from '@/components/layout/MobileTopBar.vue'
+import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
 
 // notificationsStore.notifications is kept live app-wide (see App.vue).
 const notificationsStore = useNotificationsStore()
 
+const mobileMenuOpen = ref(false)
 const respondingId = ref<string | null>(null)
 
 const sorted = computed(() =>
@@ -46,9 +49,11 @@ const decline = async (n: AppNotification) => {
 
 <template>
   <div class="page">
-    <SidebarNav />
+    <SidebarNav :mobile-open="mobileMenuOpen" @close="mobileMenuOpen = false" />
 
     <div class="main">
+      <MobileTopBar @menu-click="mobileMenuOpen = true" />
+
       <div class="content">
         <div class="page-hdr">
           <h1 class="page-title">Notifications</h1>
@@ -126,6 +131,8 @@ const decline = async (n: AppNotification) => {
           </template>
         </div>
       </div>
+
+      <MobileBottomNav />
     </div>
   </div>
 </template>
@@ -327,6 +334,12 @@ const decline = async (n: AppNotification) => {
 }
 
 @media (max-width: 768px) {
+  .page {
+    flex-direction: column;
+    height: 100svh;
+    height: 100vh;
+  }
+
   .content {
     padding: 20px 16px;
   }
