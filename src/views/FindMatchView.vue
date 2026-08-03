@@ -5,6 +5,8 @@ import { useMatchesStore, OPEN_SLOT_ID } from '@/stores/matches'
 import type { Match } from '@/stores/matches'
 import { useUsersStore } from '@/stores/users'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
+import MobileTopBar from '@/components/layout/MobileTopBar.vue'
+import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
 import TeamRoster from '@/components/shared/TeamRoster.vue'
 import type { RosterPlayer } from '@/components/shared/TeamRoster.vue'
 
@@ -12,6 +14,7 @@ const authStore = useAuthStore()
 const matchesStore = useMatchesStore()
 const usersStore = useUsersStore()
 
+const mobileMenuOpen = ref(false)
 const joiningKey = ref<string | null>(null)
 const joinError = ref('')
 
@@ -82,9 +85,11 @@ const join = async (match: Match, side: 'A' | 'B') => {
 
 <template>
   <div class="page">
-    <SidebarNav />
+    <SidebarNav :mobile-open="mobileMenuOpen" @close="mobileMenuOpen = false" />
 
     <div class="main">
+      <MobileTopBar @menu-click="mobileMenuOpen = true" />
+
       <div class="content">
         <div class="page-hdr">
           <h1 class="page-title">Find a Match</h1>
@@ -138,6 +143,8 @@ const join = async (match: Match, side: 'A' | 'B') => {
           </template>
         </div>
       </div>
+
+      <MobileBottomNav />
     </div>
   </div>
 </template>
@@ -314,6 +321,12 @@ const join = async (match: Match, side: 'A' | 'B') => {
 }
 
 @media (max-width: 768px) {
+  .page {
+    flex-direction: column;
+    height: 100svh;
+    height: 100vh;
+  }
+
   .content {
     padding: 20px 16px;
   }

@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useUsersStore } from '@/stores/users'
 import { useRouter, useRoute } from 'vue-router'
 import PlayerAvatar from '@/components/shared/PlayerAvatar.vue'
+
+withDefaults(defineProps<{ mobileOpen?: boolean }>(), { mobileOpen: false })
+const emit = defineEmits<{ close: [] }>()
 
 const authStore = useAuthStore()
 // notificationsStore.notifications and usersStore.allUsers are kept live app-wide
@@ -12,6 +15,9 @@ const notificationsStore = useNotificationsStore()
 const usersStore = useUsersStore()
 const router = useRouter()
 const route = useRoute()
+
+// Close the mobile drawer automatically whenever navigation happens.
+watch(() => route.path, () => emit('close'))
 
 const displayName = computed(() => {
   const user = authStore.user
@@ -25,10 +31,17 @@ const myAvatarBackground = computed(
 </script>
 
 <template>
-  <aside class="sidebar">
+  <div v-if="mobileOpen" class="sb-backdrop" @click="emit('close')"></div>
+  <aside class="sidebar" :class="{ 'sidebar--mobile-open': mobileOpen }">
     <div class="sb-logo">
       <div class="sb-logo-icon">P</div>
       <span class="sb-logo-text">Padel Club</span>
+      <button v-if="mobileOpen" class="sb-close-btn" aria-label="Close menu" @click="emit('close')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M18 6 6 18" />
+          <path d="m6 6 12 12" />
+        </svg>
+      </button>
     </div>
 
     <div class="sb-divider"></div>
@@ -363,9 +376,55 @@ const myAvatarBackground = computed(
   display: block;
 }
 
+.sb-close-btn {
+  margin-left: auto;
+  width: 28px;
+  height: 28px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.sb-close-btn:hover {
+  background: var(--color-bg-soft);
+}
+
+.sb-backdrop {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .sidebar {
     display: none;
+  }
+
+  .sidebar--mobile-open {
+    display: flex;
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 200;
+    width: 82%;
+    max-width: 300px;
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.2);
+  }
+
+  .sb-close-btn {
+    display: flex;
+  }
+
+  .sb-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 190;
   }
 }
 </style>
