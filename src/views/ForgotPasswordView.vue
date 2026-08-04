@@ -25,6 +25,11 @@ const submit = async () => {
     loading.value = false
   }
 }
+
+const sendAnother = () => {
+  success.value = false
+  email.value = ''
+}
 </script>
 
 <template>
@@ -134,13 +139,7 @@ const submit = async () => {
             </p>
           </div>
           <p class="success-hint">Didn't get it? Check your spam folder or try again.</p>
-          <button
-            class="submit-btn"
-            @click="
-              success = false
-              email = ''
-            "
-          >
+          <button class="submit-btn" @click="sendAnother">
             Send another link
           </button>
           <div class="back-row">
