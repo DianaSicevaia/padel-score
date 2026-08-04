@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useUsersStore } from '@/stores/users'
 import { useAuthStore } from '@/stores/auth'
 import type { StandaloneParticipant } from '@/stores/matches'
+import { formatNtrp } from '@/utils/ntrp'
 
 const props = defineProps<{
   modelValue: StandaloneParticipant | null
@@ -43,8 +44,7 @@ watch(term, (value) => {
   debounceTimer = setTimeout(() => usersStore.searchUsers(value), 250)
 })
 
-const results = () =>
-  usersStore.searchResults.filter((u) => !props.excludeUids.includes(u.uid))
+const results = () => usersStore.searchResults.filter((u) => !props.excludeUids.includes(u.uid))
 
 const selectUser = (u: { uid: string; displayName?: string | null; email?: string }) => {
   emit('update:modelValue', { uid: u.uid, name: u.displayName || u.email || 'Player' })
@@ -83,7 +83,9 @@ const onBlur = () => {
     </div>
 
     <div v-if="modelValue" class="picker-chip" :class="{ 'picker-chip--open': modelValue.isOpen }">
-      <span class="chip-name">{{ modelValue.isOpen ? 'Open — anyone can join' : modelValue.name }}</span>
+      <span class="chip-name">{{
+        modelValue.isOpen ? 'Open — anyone can join' : modelValue.name
+      }}</span>
       <span v-if="!modelValue.uid && !modelValue.isOpen" class="chip-guest-tag">guest</span>
       <button class="chip-clear" type="button" aria-label="Remove" @click="clear">×</button>
     </div>
@@ -105,10 +107,17 @@ const onBlur = () => {
           type="button"
           @mousedown.prevent="selectUser(u)"
         >
-          <span class="option-name">{{ u.displayName || u.email }}</span>
+          <span class="option-row">
+            <span class="option-name">{{ u.displayName || u.email }}</span>
+            <span class="option-ntrp">NTRP {{ formatNtrp(u.rating) }}</span>
+          </span>
           <span v-if="u.displayName && u.email" class="option-email">{{ u.email }}</span>
         </button>
-        <button class="picker-option picker-option--guest" type="button" @mousedown.prevent="addGuest">
+        <button
+          class="picker-option picker-option--guest"
+          type="button"
+          @mousedown.prevent="addGuest"
+        >
           + Add "{{ term.trim() }}" as guest
         </button>
       </div>
@@ -212,9 +221,25 @@ const onBlur = () => {
   background: var(--color-bg-soft);
 }
 
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
 .option-name {
   font-size: 13px;
   color: var(--color-text);
+}
+
+.option-ntrp {
+  margin-left: auto;
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-faint);
+  flex-shrink: 0;
 }
 
 .option-email {

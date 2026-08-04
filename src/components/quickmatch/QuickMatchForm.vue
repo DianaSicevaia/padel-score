@@ -61,8 +61,20 @@ const removeSet = (i: number) => {
   if (matchSets.value.length > 1) matchSets.value.splice(i, 1)
 }
 
-const teamALabel = computed(() => [a1.value, a2.value].filter(Boolean).map((p) => p!.name).join(' & ') || 'Team A')
-const teamBLabel = computed(() => [b1.value, b2.value].filter(Boolean).map((p) => p!.name).join(' & ') || 'Team B')
+const teamALabel = computed(
+  () =>
+    [a1.value, a2.value]
+      .filter(Boolean)
+      .map((p) => p!.name)
+      .join(' & ') || 'Team A',
+)
+const teamBLabel = computed(
+  () =>
+    [b1.value, b2.value]
+      .filter(Boolean)
+      .map((p) => p!.name)
+      .join(' & ') || 'Team B',
+)
 
 const selectWinner = (team: 'A' | 'B') => {
   manualWinner.value = team
@@ -170,7 +182,12 @@ const submit = async () => {
   <div class="match-form">
     <div class="match-form-teams">
       <div class="match-form-team">
-        <PlayerPicker v-model="a1" label="Team A" :excludeUids="takenUids(a1)" :allowOpen="isScheduling" />
+        <PlayerPicker
+          v-model="a1"
+          label="Team A"
+          :excludeUids="takenUids(a1)"
+          :allowOpen="isScheduling"
+        />
         <PlayerPicker
           v-if="showSecondPlayer"
           v-model="a2"
@@ -191,7 +208,12 @@ const submit = async () => {
         </button>
       </div>
       <div class="match-form-team">
-        <PlayerPicker v-model="b1" label="Team B" :excludeUids="takenUids(b1)" :allowOpen="isScheduling" />
+        <PlayerPicker
+          v-model="b1"
+          label="Team B"
+          :excludeUids="takenUids(b1)"
+          :allowOpen="isScheduling"
+        />
         <PlayerPicker
           v-if="showSecondPlayer"
           v-model="b2"
@@ -228,36 +250,74 @@ const submit = async () => {
       </div>
     </template>
     <template v-else>
-    <div class="match-form-sets">
-      <div v-for="(set, i) in matchSets" :key="i" class="match-set-row">
-        <span class="set-num-label">Set {{ i + 1 }}</span>
-        <input v-model="set.scoreA" type="number" min="0" max="99" class="score-input" placeholder="0" />
-        <span class="score-colon">:</span>
-        <input v-model="set.scoreB" type="number" min="0" max="99" class="score-input" placeholder="0" />
-        <button v-if="matchSets.length > 1" class="btn-remove-set" title="Remove set" type="button" @click="removeSet(i)">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M18 6 6 18" />
-            <path d="m6 6 12 12" />
-          </svg>
-        </button>
-        <div v-else class="set-row-spacer"></div>
-      </div>
-      <div class="sets-footer">
-        <button class="btn-add-set" type="button" @click="addSet">+ Add Set</button>
-        <template v-if="!showWinnerPicker && !manualWinner">
-          <button class="btn-decide-winner" type="button" @click="showWinnerPicker = true">Decide a winner</button>
-        </template>
-        <div v-else-if="showWinnerPicker" class="winner-picker">
-          <span class="winner-picker-label">Who won?</span>
-          <button class="btn-team-pick" type="button" @click="selectWinner('A')">{{ teamALabel }}</button>
-          <button class="btn-team-pick" type="button" @click="selectWinner('B')">{{ teamBLabel }}</button>
+      <div class="match-form-sets">
+        <div v-for="(set, i) in matchSets" :key="i" class="match-set-row">
+          <span class="set-num-label">Set {{ i + 1 }}</span>
+          <input
+            v-model="set.scoreA"
+            type="number"
+            min="0"
+            max="99"
+            class="score-input"
+            placeholder="0"
+          />
+          <span class="score-colon">:</span>
+          <input
+            v-model="set.scoreB"
+            type="number"
+            min="0"
+            max="99"
+            class="score-input"
+            placeholder="0"
+          />
+          <button
+            v-if="matchSets.length > 1"
+            class="btn-remove-set"
+            title="Remove set"
+            type="button"
+            @click="removeSet(i)"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+          <div v-else class="set-row-spacer"></div>
         </div>
-        <div v-else class="manual-winner-display">
-          <span class="manual-winner-text">{{ manualWinner === 'A' ? teamALabel : teamBLabel }} wins</span>
-          <button class="btn-clear-winner" type="button" @click="clearWinner">×</button>
+        <div class="sets-footer">
+          <button class="btn-add-set" type="button" @click="addSet">+ Add Set</button>
+          <template v-if="!showWinnerPicker && !manualWinner">
+            <button class="btn-decide-winner" type="button" @click="showWinnerPicker = true">
+              Decide a winner
+            </button>
+          </template>
+          <div v-else-if="showWinnerPicker" class="winner-picker">
+            <span class="winner-picker-label">Who won?</span>
+            <button class="btn-team-pick" type="button" @click="selectWinner('A')">
+              {{ teamALabel }}
+            </button>
+            <button class="btn-team-pick" type="button" @click="selectWinner('B')">
+              {{ teamBLabel }}
+            </button>
+          </div>
+          <div v-else class="manual-winner-display">
+            <span class="manual-winner-text"
+              >{{ manualWinner === 'A' ? teamALabel : teamBLabel }} wins</span
+            >
+            <button class="btn-clear-winner" type="button" @click="clearWinner">×</button>
+          </div>
         </div>
       </div>
-    </div>
     </template>
 
     <div class="match-form-footer">
@@ -452,7 +512,9 @@ const submit = async () => {
   align-items: center;
   justify-content: center;
   color: var(--color-text-subtle);
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   flex-shrink: 0;
 }
 
@@ -485,7 +547,9 @@ const submit = async () => {
   color: var(--color-text-muted);
   cursor: pointer;
   margin-top: 2px;
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .btn-add-set:hover {
@@ -503,7 +567,9 @@ const submit = async () => {
   font-size: 13px;
   color: var(--color-text-subtle);
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .btn-decide-winner:hover {
@@ -541,7 +607,10 @@ const submit = async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    color 0.15s;
 }
 
 .btn-team-pick:hover {

@@ -149,6 +149,16 @@ export const useUsersStore = defineStore('users', {
         this.allUsers[idx] = { ...this.allUsers[idx]!, avatarBackground: backgroundId ?? undefined }
     },
 
+    // Manual correction for a player's starting NTRP self-assessment
+    // for cases when they've kept playing outside the app for a while and their
+    // level has clearly moved since they registered. Distinct from applyMatchResult,
+    // which tracks results earned through matches played here.
+    async updateRating(uid: string, rating: number) {
+      await setDoc(doc(db, 'users', uid), { rating }, { merge: true })
+      const idx = this.allUsers.findIndex((u) => u.uid === uid)
+      if (idx !== -1) this.allUsers[idx] = { ...this.allUsers[idx]!, rating }
+    },
+
     async applyMatchResult(
       updates: {
         uid: string

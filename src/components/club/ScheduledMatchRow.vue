@@ -37,6 +37,8 @@ const resolveRoster = (ids: string[], names?: string[]): RosterPlayer[] =>
       name: names?.[i] ?? player?.name ?? id,
       photoUrl: profile?.photoUrl,
       backgroundId: profile?.avatarBackground,
+      rating: profile?.rating,
+      linkUid: profile?.uid,
       pending,
     }
   })
@@ -92,7 +94,17 @@ const confirmEdit = async () => {
           <TeamRoster :players="teamBPlayers" align="end" />
         </div>
         <span class="scheduled-time">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
             <line x1="16" y1="2" x2="16" y2="6" />
             <line x1="8" y1="2" x2="8" y2="6" />
@@ -103,19 +115,52 @@ const confirmEdit = async () => {
       </div>
       <div class="scheduled-actions">
         <span v-if="match.status === 'pending'" class="status-badge">Awaiting confirmation</span>
-        <span v-else-if="match.status === 'cancelled'" class="status-badge status-badge--cancelled">Cancelled</span>
-        <button v-else-if="canPlayNow()" class="btn-play-now" @click="emit('play-now', match)">▶ Play now</button>
+        <span v-else-if="match.status === 'cancelled'" class="status-badge status-badge--cancelled"
+          >Cancelled</span
+        >
+        <button v-else-if="canPlayNow()" class="btn-play-now" @click="emit('play-now', match)">
+          ▶ Play now
+        </button>
         <span v-else class="status-badge">Only the organizer can start this match</span>
-        <button v-if="match.status !== 'cancelled'" class="btn-icon" title="Edit schedule" @click="openEdit">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <button
+          v-if="match.status !== 'cancelled'"
+          class="btn-icon"
+          title="Edit schedule"
+          @click="openEdit"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
             <line x1="16" y1="2" x2="16" y2="6" />
             <line x1="8" y1="2" x2="8" y2="6" />
             <line x1="3" y1="10" x2="21" y2="10" />
           </svg>
         </button>
-        <button class="btn-icon btn-icon-danger" title="Cancel match" @click="emit('cancel-match', match.id)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <button
+          class="btn-icon btn-icon-danger"
+          title="Cancel match"
+          @click="emit('cancel-match', match.id)"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <path d="M18 6 6 18" />
             <path d="m6 6 12 12" />
           </svg>
@@ -288,7 +333,9 @@ const confirmEdit = async () => {
   align-items: center;
   justify-content: center;
   color: var(--color-text-muted);
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   flex-shrink: 0;
 }
 

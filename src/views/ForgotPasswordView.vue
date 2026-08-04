@@ -25,6 +25,11 @@ const submit = async () => {
     loading.value = false
   }
 }
+
+const sendAnother = () => {
+  success.value = false
+  email.value = ''
+}
 </script>
 
 <template>
@@ -50,21 +55,51 @@ const submit = async () => {
 
         <ul class="features">
           <li class="feature-item">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
               <circle cx="12" cy="12" r="10" />
               <polyline points="9,12 11,14 15,10" />
             </svg>
             <span>Reset link sent to your inbox</span>
           </li>
           <li class="feature-item">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
               <circle cx="12" cy="12" r="10" />
               <polyline points="9,12 11,14 15,10" />
             </svg>
             <span>Link expires after 1 hour</span>
           </li>
           <li class="feature-item">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
               <circle cx="12" cy="12" r="10" />
               <polyline points="9,12 11,14 15,10" />
             </svg>
@@ -77,11 +112,20 @@ const submit = async () => {
     <!-- Right panel -->
     <div class="form-panel">
       <div class="form-container">
-
         <!-- Success state -->
         <template v-if="success">
           <div class="success-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
               <path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8" />
               <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
               <path d="m16 19 2 2 4-4" />
@@ -95,7 +139,9 @@ const submit = async () => {
             </p>
           </div>
           <p class="success-hint">Didn't get it? Check your spam folder or try again.</p>
-          <button class="submit-btn" @click="success = false; email = ''">Send another link</button>
+          <button class="submit-btn" @click="sendAnother">
+            Send another link
+          </button>
           <div class="back-row">
             <RouterLink to="/" class="back-link">← Back to Sign In</RouterLink>
           </div>
@@ -111,7 +157,18 @@ const submit = async () => {
           <div class="field">
             <label class="field-label">EMAIL</label>
             <div class="input-wrapper">
-              <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg
+                class="input-icon"
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
                 <rect x="2" y="4" width="20" height="16" rx="2" />
                 <path d="m22 4-10 9L2 4" />
               </svg>
@@ -136,7 +193,6 @@ const submit = async () => {
             <RouterLink to="/" class="back-link">← Back to Sign In</RouterLink>
           </div>
         </template>
-
       </div>
     </div>
   </div>

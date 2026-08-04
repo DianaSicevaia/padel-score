@@ -1,5 +1,14 @@
 import { defineStore } from 'pinia'
-import { collection, query, where, onSnapshot, addDoc, updateDoc, doc, arrayUnion } from 'firebase/firestore'
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  addDoc,
+  updateDoc,
+  doc,
+  arrayUnion,
+} from 'firebase/firestore'
 import type { Unsubscribe } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { useAuthStore } from '@/stores/auth'
@@ -93,7 +102,7 @@ export const useClubsStore = defineStore('clubs', {
 
     async addMember(clubId: string, uid: string) {
       await updateDoc(doc(db, 'clubs', clubId), { memberIds: arrayUnion(uid) })
-      const club = this.clubs.find(c => c.id === clubId)
+      const club = this.clubs.find((c) => c.id === clubId)
       if (club) {
         club.memberIds = [...(club.memberIds ?? []), uid].filter((v, i, a) => a.indexOf(v) === i)
       }
@@ -101,7 +110,7 @@ export const useClubsStore = defineStore('clubs', {
 
     async deleteClub(id: string) {
       await updateDoc(doc(db, 'clubs', id), { deletedAt: Date.now() })
-      this.clubs = this.clubs.filter(c => c.id !== id)
+      this.clubs = this.clubs.filter((c) => c.id !== id)
     },
   },
 })

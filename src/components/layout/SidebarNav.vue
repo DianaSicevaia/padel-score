@@ -17,7 +17,10 @@ const router = useRouter()
 const route = useRoute()
 
 // Close the mobile drawer automatically whenever navigation happens.
-watch(() => route.path, () => emit('close'))
+watch(
+  () => route.path,
+  () => emit('close'),
+)
 
 const displayName = computed(() => {
   const user = authStore.user
@@ -37,7 +40,17 @@ const myAvatarBackground = computed(
       <div class="sb-logo-icon">P</div>
       <span class="sb-logo-text">Padel Club</span>
       <button v-if="mobileOpen" class="sb-close-btn" aria-label="Close menu" @click="emit('close')">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
           <path d="M18 6 6 18" />
           <path d="m6 6 12 12" />
         </svg>

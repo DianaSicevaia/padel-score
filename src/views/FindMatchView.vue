@@ -50,6 +50,8 @@ const teamRoster = (m: Match, side: 'A' | 'B'): RosterPlayer[] => {
       name,
       photoUrl: profile?.photoUrl,
       backgroundId: profile?.avatarBackground,
+      rating: profile?.rating,
+      linkUid: profile?.uid,
       pending,
       isOpen,
     }

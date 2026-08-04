@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useUsersStore } from '@/stores/users'
 import type { PreferredSide } from '@/stores/users'
 import { AVATAR_BACKGROUNDS } from '@/utils/avatarBackgrounds'
+import { NTRP_OPTIONS, formatNtrp, ntrpToRating } from '@/utils/ntrp'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import MobileTopBar from '@/components/layout/MobileTopBar.vue'
 import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
@@ -31,6 +32,10 @@ const globalRatingText = computed(() => {
     ? `Rating ${p.rating} · ${p.matchesPlayed} matches · ${p.wins}W / ${p.losses}L`
     : `Rating ${p.rating} · no standalone matches yet`
 })
+
+const ntrpText = computed(() =>
+  globalProfile.value ? `NTRP ${formatNtrp(globalProfile.value.rating)}` : '',
+)
 
 const preferredSideLabel = (side?: PreferredSide) => {
   if (side === 'left') return 'Left'
@@ -101,6 +106,40 @@ const saveProfile = async () => {
     saving.value = false
   }
 }
+
+// ── NTRP correction ─────────────────────────────────
+// Kept separate from the main profile edit above: this rewrites the
+// underlying rating directly, so it should only happen on a deliberate
+// action (e.g. "I've kept playing elsewhere and my level has moved since I
+// registered"), never as a side effect of saving an unrelated field.
+const isEditingNtrp = ref(false)
+const editNtrp = ref(3.5)
+const savingNtrp = ref(false)
+const ntrpError = ref('')
+
+const startEditNtrp = () => {
+  editNtrp.value = globalProfile.value ? Number(formatNtrp(globalProfile.value.rating)) : 3.5
+  ntrpError.value = ''
+  isEditingNtrp.value = true
+}
+
+const cancelEditNtrp = () => {
+  isEditingNtrp.value = false
+}
+
+const saveNtrp = async () => {
+  if (!authStore.user) return
+  savingNtrp.value = true
+  ntrpError.value = ''
+  try {
+    await usersStore.updateRating(authStore.user.uid, ntrpToRating(editNtrp.value))
+    isEditingNtrp.value = false
+  } catch {
+    ntrpError.value = 'Failed to update your rating. Please try again.'
+  } finally {
+    savingNtrp.value = false
+  }
+}
 </script>
 
 <template>
@@ -153,8 +192,37 @@ const saveProfile = async () => {
               <span class="profile-name">{{ displayName }}</span>
               <span class="profile-email">{{ user?.email ?? '—' }}</span>
               <span v-if="memberSince" class="profile-since">Member since {{ memberSince }}</span>
+              <span v-if="ntrpText" class="profile-ntrp-row">
+                <span class="profile-ntrp">{{ ntrpText }}</span>
+                <button
+                  v-if="!isEditingNtrp"
+                  type="button"
+                  class="btn-adjust-ntrp"
+                  @click="startEditNtrp"
+                >
+                  Adjust
+                </button>
+              </span>
+              <div v-if="isEditingNtrp" class="ntrp-edit-row">
+                <select v-model.number="editNtrp" class="ntrp-select">
+                  <option v-for="n in NTRP_OPTIONS" :key="n" :value="n">{{ n.toFixed(1) }}</option>
+                </select>
+                <button class="btn-sm-primary btn-sm-tiny" :disabled="savingNtrp" @click="saveNtrp">
+                  {{ savingNtrp ? '…' : 'Save' }}
+                </button>
+                <button
+                  class="btn-sm-ghost btn-sm-tiny"
+                  :disabled="savingNtrp"
+                  @click="cancelEditNtrp"
+                >
+                  Cancel
+                </button>
+              </div>
+              <p v-if="ntrpError" class="add-error">{{ ntrpError }}</p>
               <span v-if="globalRatingText" class="profile-rating">{{ globalRatingText }}</span>
-              <span v-if="globalProfile" class="profile-rating-hint">Based on matches played without a club</span>
+              <span v-if="globalProfile" class="profile-rating-hint"
+                >Based on matches played without a club</span
+              >
               <span v-if="preferredSideText" class="profile-side">{{ preferredSideText }}</span>
             </div>
           </div>
@@ -398,7 +466,9 @@ const saveProfile = async () => {
   background-position: center;
   cursor: pointer;
   padding: 0;
-  transition: border-color 0.15s, transform 0.1s;
+  transition:
+    border-color 0.15s,
+    transform 0.1s;
 }
 
 .bg-swatch:hover {
@@ -558,6 +628,66 @@ const saveProfile = async () => {
   font-size: 11px;
   color: var(--color-text-subtle);
   margin-top: 2px;
+}
+
+.profile-ntrp-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.profile-ntrp {
+  font-family: 'Geist Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.btn-adjust-ntrp {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  text-decoration: underline dotted;
+}
+
+.btn-adjust-ntrp:hover {
+  color: var(--color-accent);
+}
+
+.ntrp-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.ntrp-select {
+  height: 32px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--color-text);
+  background: var(--color-white);
+  outline: none;
+  cursor: pointer;
+}
+
+.ntrp-select:focus {
+  border-color: var(--color-accent);
+}
+
+.btn-sm-tiny {
+  height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
 }
 
 .profile-rating {

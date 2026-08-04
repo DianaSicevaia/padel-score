@@ -86,7 +86,10 @@ export const usePlayersStore = defineStore('players', {
       }
     },
 
-    async addPlayerByEmail(clubId: string, email: string): Promise<'ok' | 'not_found' | 'already_added'> {
+    async addPlayerByEmail(
+      clubId: string,
+      email: string,
+    ): Promise<'ok' | 'not_found' | 'already_added'> {
       const normalized = email.trim().toLowerCase()
       const q = query(collection(db, 'users'), where('email', '==', normalized), limit(1))
       const snapshot = await getDocs(q)
@@ -96,7 +99,7 @@ export const usePlayersStore = defineStore('players', {
       const uid = userDoc.id
       const userData = userDoc.data() as { email?: string; displayName?: string | null }
 
-      if (this.players.some(p => p.uid === uid)) return 'already_added'
+      if (this.players.some((p) => p.uid === uid)) return 'already_added'
 
       const name = userData.displayName || normalized.split('@')[0] || normalized
       await this.createPlayer(clubId, name, uid)
@@ -105,7 +108,7 @@ export const usePlayersStore = defineStore('players', {
 
     async updatePlayer(id: string, updates: { name: string }) {
       await updateDoc(doc(db, 'players', id), updates)
-      const idx = this.players.findIndex(p => p.id === id)
+      const idx = this.players.findIndex((p) => p.id === id)
       if (idx !== -1) this.players[idx] = { ...this.players[idx]!, ...updates }
     },
 
@@ -115,10 +118,18 @@ export const usePlayersStore = defineStore('players', {
       } else {
         await deleteDoc(doc(db, 'players', player.id))
       }
-      this.players = this.players.filter(p => p.id !== player.id)
+      this.players = this.players.filter((p) => p.id !== player.id)
     },
 
-    async applyMatchResult(updates: { id: string; rating: number; matchesPlayed: number; wins: number; losses: number }[]) {
+    async applyMatchResult(
+      updates: {
+        id: string
+        rating: number
+        matchesPlayed: number
+        wins: number
+        losses: number
+      }[],
+    ) {
       for (const u of updates) {
         await updateDoc(doc(db, 'players', u.id), {
           rating: u.rating,
@@ -126,7 +137,7 @@ export const usePlayersStore = defineStore('players', {
           wins: u.wins,
           losses: u.losses,
         })
-        const idx = this.players.findIndex(p => p.id === u.id)
+        const idx = this.players.findIndex((p) => p.id === u.id)
         if (idx !== -1) this.players[idx] = { ...this.players[idx]!, ...u }
       }
     },
@@ -139,8 +150,8 @@ export const usePlayersStore = defineStore('players', {
       const q = query(collection(db, 'players'), where('clubId', 'in', otherClubIds))
       const snapshot = await getDocs(q)
       this.selectablePlayers = snapshot.docs
-        .map(d => ({ id: d.id, ...(d.data() as Omit<Player, 'id'>) }))
-        .filter(p => !p.deletedAt)
+        .map((d) => ({ id: d.id, ...(d.data() as Omit<Player, 'id'>) }))
+        .filter((p) => !p.deletedAt)
     },
   },
 })

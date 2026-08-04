@@ -46,7 +46,17 @@ const handleDelete = async (club: Club) => {
         title="Delete club"
         @click.stop="handleDelete(club)"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
           <path d="M3 6h18" />
           <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
           <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
@@ -130,7 +140,9 @@ const handleDelete = async (club: Club) => {
   align-items: center;
   justify-content: center;
   color: var(--color-text-muted);
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
   flex-shrink: 0;
 }
 

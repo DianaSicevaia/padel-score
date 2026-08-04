@@ -37,7 +37,15 @@ const teamRoster = (m: Match, side: 'A' | 'B'): RosterPlayer[] => {
     const isOpen = id === OPEN_SLOT_ID
     const isGuest = id.startsWith('guest-')
     const profile = !isOpen && !isGuest ? usersStore.allUsers.find((u) => u.uid === id) : undefined
-    return { id, name, photoUrl: profile?.photoUrl, backgroundId: profile?.avatarBackground, isOpen }
+    return {
+      id,
+      name,
+      photoUrl: profile?.photoUrl,
+      backgroundId: profile?.avatarBackground,
+      rating: profile?.rating,
+      linkUid: profile?.uid,
+      isOpen,
+    }
   })
 }
 
@@ -91,15 +99,25 @@ const formatDate = (ts: number) =>
                     type="button"
                     @click.stop="toggleSetsDetail(match.id)"
                   >
-                    <span :class="match.winnerTeam === 'A' ? 'sp-win' : 'sp-lose'">{{ setsWon(match).a }}</span>
+                    <span :class="match.winnerTeam === 'A' ? 'sp-win' : 'sp-lose'">{{
+                      setsWon(match).a
+                    }}</span>
                     <span class="sp-sep">:</span>
-                    <span :class="match.winnerTeam === 'B' ? 'sp-win' : 'sp-lose'">{{ setsWon(match).b }}</span>
+                    <span :class="match.winnerTeam === 'B' ? 'sp-win' : 'sp-lose'">{{
+                      setsWon(match).b
+                    }}</span>
                     <svg
                       class="score-chevron"
                       :class="{ 'score-chevron--open': expandedMatchIds.has(match.id) }"
-                      width="10" height="10" viewBox="0 0 24 24"
-                      fill="none" stroke="currentColor" stroke-width="2.5"
-                      stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
                     >
                       <path d="m6 9 6 6 6-6" />
                     </svg>
@@ -123,7 +141,10 @@ const formatDate = (ts: number) =>
             </div>
             <span class="match-date">{{ formatDate(match.createdAt) }}</span>
           </div>
-          <div v-if="displaySets(match).length > 1 && expandedMatchIds.has(match.id)" class="sets-detail">
+          <div
+            v-if="displaySets(match).length > 1 && expandedMatchIds.has(match.id)"
+            class="sets-detail"
+          >
             <div v-for="(s, si) in displaySets(match)" :key="si" class="sets-detail-item">
               <span class="sets-detail-num">{{ si + 1 }}</span>
               <span :class="s.scoreA > s.scoreB ? 'sp-win' : 'sp-lose'">{{ s.scoreA }}</span>

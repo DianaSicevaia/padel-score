@@ -10,6 +10,7 @@ import MatchesView from '../views/MatchesView.vue'
 import QuickMatchView from '../views/QuickMatchView.vue'
 import NotificationsView from '../views/NotificationsView.vue'
 import FindMatchView from '../views/FindMatchView.vue'
+import PlayerProfileView from '../views/PlayerProfileView.vue'
 import { useAuthStore } from '@/stores/auth'
 import { pinia } from '@/stores'
 
@@ -80,6 +81,12 @@ const router = createRouter({
       path: '/find-match',
       name: 'find-match',
       component: FindMatchView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/players/:uid',
+      name: 'player-profile',
+      component: PlayerProfileView,
       meta: { requiresAuth: true },
     },
   ],
