@@ -80,12 +80,9 @@ onMounted(() => {
   const uid = authStore.user.uid
 
   // clubsStore.clubs is kept live app-wide (see App.vue).
-  unsubMyPlayers = onSnapshot(
-    query(collection(db, 'players'), where('uid', '==', uid)),
-    (snap) => {
-      myPlayers.value = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Player, 'id'>) }))
-    },
-  )
+  unsubMyPlayers = onSnapshot(query(collection(db, 'players'), where('uid', '==', uid)), (snap) => {
+    myPlayers.value = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Player, 'id'>) }))
+  })
 
   // Matches I'm invited to but haven't (yet) formally joined the club for.
   unsubStandaloneMatches = matchesStore.subscribeStandaloneMatches(uid)
@@ -318,14 +315,37 @@ const stats = computed(() => [
           </div>
           <div class="page-hdr-actions">
             <button class="btn-primary" @click="showNewMatchModal = true">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <line x1="5" y1="12" x2="19" y2="12" />
               </svg>
               New Match
             </button>
-            <button class="btn-notif" aria-label="Notifications" @click="router.push('/notifications')">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button
+              class="btn-notif"
+              aria-label="Notifications"
+              @click="router.push('/notifications')"
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
@@ -348,7 +368,17 @@ const stats = computed(() => [
 
         <!-- Mobile New Match button -->
         <button class="m-btn-primary" @click="showNewMatchModal = true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
           </svg>

@@ -103,14 +103,20 @@ function snapshotPlayers(players: Player[]): MatchPlayerSnapshot[] {
 }
 
 // Old snapshots stored player name as playerId — resolve by id first, then by name
-function resolveSnapshotUpdates(
-  before: MatchPlayerSnapshot[],
-  players: Player[],
-) {
+function resolveSnapshotUpdates(before: MatchPlayerSnapshot[], players: Player[]) {
   return before.flatMap((s) => {
-    const player = players.find((p) => p.id === s.playerId) ?? players.find((p) => p.name === s.playerId)
+    const player =
+      players.find((p) => p.id === s.playerId) ?? players.find((p) => p.name === s.playerId)
     if (!player) return []
-    return [{ id: player.id, rating: s.rating, matchesPlayed: s.matchesPlayed, wins: s.wins, losses: s.losses }]
+    return [
+      {
+        id: player.id,
+        rating: s.rating,
+        matchesPlayed: s.matchesPlayed,
+        wins: s.wins,
+        losses: s.losses,
+      },
+    ]
   })
 }
 
@@ -189,7 +195,8 @@ export const useMatchesStore = defineStore('matches', {
       const ratingOf = (p: StandaloneParticipant) =>
         (p.uid ? userProfiles.find((u) => u.uid === p.uid)?.rating : undefined) ?? USER_START_RATING
 
-      const genGuestId = () => `guest-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`
+      const genGuestId = () =>
+        `guest-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`
       const idOf = (p: StandaloneParticipant) => p.uid ?? genGuestId()
 
       const teamAIds = teamA.map(idOf)
@@ -420,8 +427,8 @@ export const useMatchesStore = defineStore('matches', {
       const playersStore = usePlayersStore()
       const authStore = useAuthStore()
       const resolve = (id: string) => playersStore.players.find((p) => p.id === id)
-      const teamANames = teamAIds.map(id => resolve(id)?.name ?? id)
-      const teamBNames = teamBIds.map(id => resolve(id)?.name ?? id)
+      const teamANames = teamAIds.map((id) => resolve(id)?.name ?? id)
+      const teamBNames = teamBIds.map((id) => resolve(id)?.name ?? id)
 
       const currentUid = authStore.user?.uid
       const resolvedPlayers = [...teamAIds, ...teamBIds]
@@ -470,7 +477,8 @@ export const useMatchesStore = defineStore('matches', {
       scheduledAt: number,
       creatorUid: string,
     ) {
-      const genGuestId = () => `guest-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`
+      const genGuestId = () =>
+        `guest-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`
       const idOf = (p: StandaloneParticipant) => (p.isOpen ? OPEN_SLOT_ID : (p.uid ?? genGuestId()))
       const nameOf = (p: StandaloneParticipant) => (p.isOpen ? 'Open slot' : p.name)
 
@@ -482,9 +490,7 @@ export const useMatchesStore = defineStore('matches', {
       const allParticipants = [...teamA, ...teamB]
       const allUids = allParticipants.map((p) => p.uid).filter((u): u is string => !!u)
       const participantUids = Array.from(new Set([...allUids, creatorUid]))
-      const inviteeUids = Array.from(
-        new Set(allUids.filter((uid) => uid !== creatorUid)),
-      )
+      const inviteeUids = Array.from(new Set(allUids.filter((uid) => uid !== creatorUid)))
       const hasOpenSlot = [...teamAIds, ...teamBIds].includes(OPEN_SLOT_ID)
 
       const now = Date.now()

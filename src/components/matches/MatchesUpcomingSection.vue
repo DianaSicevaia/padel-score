@@ -35,6 +35,8 @@ const teamRoster = (m: Match, side: 'A' | 'B'): RosterPlayer[] => {
       name,
       photoUrl: profile?.photoUrl,
       backgroundId: profile?.avatarBackground,
+      rating: profile?.rating,
+      linkUid: profile?.uid,
       pending,
       isOpen,
     }
@@ -47,7 +49,17 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
 <template>
   <div class="upcoming-section">
     <div class="upcoming-section-title">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
         <line x1="16" y1="2" x2="16" y2="6" />
         <line x1="8" y1="2" x2="8" y2="6" />
@@ -73,19 +85,47 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
           <div v-if="i > 0" class="panel-divider"></div>
           <div class="upcoming-match-row">
             <div class="upcoming-teams">
-              <TeamRoster class="upcoming-roster" :players="teamRoster(match, 'A')" align="start" :avatarSize="24" />
+              <TeamRoster
+                class="upcoming-roster"
+                :players="teamRoster(match, 'A')"
+                align="start"
+                :avatarSize="24"
+              />
               <div class="upcoming-vs">VS</div>
-              <TeamRoster class="upcoming-roster" :players="teamRoster(match, 'B')" align="end" :avatarSize="24" />
+              <TeamRoster
+                class="upcoming-roster"
+                :players="teamRoster(match, 'B')"
+                align="end"
+                :avatarSize="24"
+              />
             </div>
             <div class="upcoming-right">
               <span class="match-date">
-                {{ new Date(match.scheduledAt!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}
+                {{
+                  new Date(match.scheduledAt!).toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                  })
+                }}
                 ·
-                {{ new Date(match.scheduledAt!).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) }}
+                {{
+                  new Date(match.scheduledAt!).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })
+                }}
               </span>
-              <span v-if="match.status === 'pending'" class="pending-badge">Awaiting confirmation</span>
+              <span v-if="match.status === 'pending'" class="pending-badge"
+                >Awaiting confirmation</span
+              >
               <span v-else-if="match.hasOpenSlot" class="pending-badge">Open slot</span>
-              <button v-else-if="canPlayNow(match)" class="btn-play-now" @click="emit('play-now', match)">▶ Play now</button>
+              <button
+                v-else-if="canPlayNow(match)"
+                class="btn-play-now"
+                @click="emit('play-now', match)"
+              >
+                ▶ Play now
+              </button>
               <span v-else class="pending-badge">Organizer only</span>
             </div>
           </div>

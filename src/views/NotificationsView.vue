@@ -111,22 +111,16 @@ const decline = async (n: AppNotification) => {
                 <span class="notif-date">{{ formatDate(n.scheduledAt ?? n.createdAt) }}</span>
               </div>
               <div v-if="n.status === 'pending'" class="notif-actions">
-                <button
-                  class="btn-sm-primary"
-                  :disabled="respondingId === n.id"
-                  @click="accept(n)"
-                >
+                <button class="btn-sm-primary" :disabled="respondingId === n.id" @click="accept(n)">
                   Accept
                 </button>
-                <button
-                  class="btn-sm-ghost"
-                  :disabled="respondingId === n.id"
-                  @click="decline(n)"
-                >
+                <button class="btn-sm-ghost" :disabled="respondingId === n.id" @click="decline(n)">
                   Decline
                 </button>
               </div>
-              <span v-else class="status-pill" :class="`status-pill--${n.status}`">{{ n.status }}</span>
+              <span v-else class="status-pill" :class="`status-pill--${n.status}`">{{
+                n.status
+              }}</span>
             </div>
           </template>
         </div>
@@ -300,7 +294,9 @@ const decline = async (n: AppNotification) => {
   color: var(--color-text-muted);
   cursor: pointer;
   white-space: nowrap;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .btn-sm-ghost:hover:not(:disabled) {

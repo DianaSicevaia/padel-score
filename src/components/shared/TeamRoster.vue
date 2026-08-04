@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import PlayerAvatar from '@/components/shared/PlayerAvatar.vue'
+import { formatNtrp } from '@/utils/ntrp'
 
 export interface RosterPlayer {
   id: string
   name: string
   photoUrl?: string | null
   backgroundId?: string | null
+  rating?: number
+  linkUid?: string
   pending?: boolean
   isOpen?: boolean
 }
@@ -38,27 +41,55 @@ withDefaults(
     >
       <template v-if="align === 'end'">
         <div class="roster-player-info">
-          <span class="roster-player-name">{{ p.name }}</span>
+          <component
+            :is="p.linkUid ? 'router-link' : 'span'"
+            :to="p.linkUid ? `/players/${p.linkUid}` : undefined"
+            class="roster-player-name"
+          >
+            {{ p.name }}
+          </component>
+          <span v-if="p.rating !== undefined" class="roster-player-ntrp"
+            >NTRP {{ formatNtrp(p.rating) }}</span
+          >
           <span v-if="p.pending" class="roster-player-badge">Invited</span>
         </div>
-        <PlayerAvatar
-          :id="p.id"
-          :name="p.name"
-          :photoUrl="p.photoUrl"
-          :backgroundId="p.backgroundId"
-          :size="avatarSize"
-        />
+        <component
+          :is="p.linkUid ? 'router-link' : 'div'"
+          :to="p.linkUid ? `/players/${p.linkUid}` : undefined"
+        >
+          <PlayerAvatar
+            :id="p.id"
+            :name="p.name"
+            :photoUrl="p.photoUrl"
+            :backgroundId="p.backgroundId"
+            :size="avatarSize"
+          />
+        </component>
       </template>
       <template v-else>
-        <PlayerAvatar
-          :id="p.id"
-          :name="p.name"
-          :photoUrl="p.photoUrl"
-          :backgroundId="p.backgroundId"
-          :size="avatarSize"
-        />
+        <component
+          :is="p.linkUid ? 'router-link' : 'div'"
+          :to="p.linkUid ? `/players/${p.linkUid}` : undefined"
+        >
+          <PlayerAvatar
+            :id="p.id"
+            :name="p.name"
+            :photoUrl="p.photoUrl"
+            :backgroundId="p.backgroundId"
+            :size="avatarSize"
+          />
+        </component>
         <div class="roster-player-info">
-          <span class="roster-player-name">{{ p.name }}</span>
+          <component
+            :is="p.linkUid ? 'router-link' : 'span'"
+            :to="p.linkUid ? `/players/${p.linkUid}` : undefined"
+            class="roster-player-name"
+          >
+            {{ p.name }}
+          </component>
+          <span v-if="p.rating !== undefined" class="roster-player-ntrp"
+            >NTRP {{ formatNtrp(p.rating) }}</span
+          >
           <span v-if="p.pending" class="roster-player-badge">Invited</span>
         </div>
       </template>
@@ -84,6 +115,13 @@ withDefaults(
   min-width: 0;
 }
 
+.roster-player > a,
+.roster-player > div:has(> .player-avatar) {
+  display: flex;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
 .roster-player--open .roster-player-name {
   color: var(--color-text-faint);
   font-style: italic;
@@ -106,6 +144,12 @@ withDefaults(
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-decoration: none;
+}
+
+a.roster-player-name:hover {
+  color: var(--color-accent);
+  text-decoration: underline;
 }
 
 .roster--winner .roster-player-name {
@@ -115,6 +159,13 @@ withDefaults(
 
 .roster--loser .roster-player-name {
   color: var(--color-text-subtle);
+}
+
+.roster-player-ntrp {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-faint);
 }
 
 .roster-player-badge {

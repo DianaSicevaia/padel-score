@@ -2,12 +2,14 @@
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
+import { NTRP_OPTIONS, ntrpToRating } from '@/utils/ntrp'
 
 const authStore = useAuthStore()
 const router = useRouter()
 
 const email = ref('')
 const password = ref('')
+const ntrp = ref(3.5)
 const error = ref('')
 
 const handleError = (e: unknown) => {
@@ -21,7 +23,7 @@ const handleError = (e: unknown) => {
 const register = async () => {
   try {
     error.value = ''
-    await authStore.register(email.value, password.value)
+    await authStore.register(email.value, password.value, ntrpToRating(ntrp.value))
     await router.push('/dashboard')
   } catch (e: unknown) {
     handleError(e)
@@ -195,6 +197,17 @@ const loginWithGoogle = async () => {
               <line x1="1" y1="1" x2="23" y2="23" />
             </svg>
           </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">YOUR NTRP LEVEL</label>
+          <select v-model.number="ntrp" class="field-select">
+            <option v-for="n in NTRP_OPTIONS" :key="n" :value="n">{{ n.toFixed(1) }}</option>
+          </select>
+          <p class="field-hint">
+            Not sure? 3.5 is a solid recreational-player default — you can adjust it later in
+            Settings.
+          </p>
         </div>
 
         <div class="submit-section">
@@ -437,6 +450,32 @@ const loginWithGoogle = async () => {
 
 .field-input::placeholder {
   color: var(--color-text-muted);
+}
+
+.field-select {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-white);
+  padding: 12px 14px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--color-text);
+  outline: none;
+  cursor: pointer;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.field-select:focus {
+  border-color: var(--color-danger-strong);
+}
+
+.field-hint {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.4;
 }
 
 .submit-section {

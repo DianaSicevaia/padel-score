@@ -122,7 +122,18 @@ onUnmounted(() => {
       <div class="content">
         <!-- Loading -->
         <div v-if="isLoading" class="loading-state">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spinner" aria-hidden="true">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="spinner"
+            aria-hidden="true"
+          >
             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
           </svg>
           Loading…
@@ -132,7 +143,9 @@ onUnmounted(() => {
         <template v-else-if="!club">
           <div class="not-found">
             <p>Club not found.</p>
-            <button class="btn-ghost-back" @click="router.push('/my-club')">← Back to My Clubs</button>
+            <button class="btn-ghost-back" @click="router.push('/my-club')">
+              ← Back to My Clubs
+            </button>
           </div>
         </template>
 
@@ -142,7 +155,17 @@ onUnmounted(() => {
           <div class="page-hdr">
             <div class="page-hdr-left">
               <button class="btn-back" @click="router.push('/my-club')">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
                   <path d="m15 18-6-6 6-6" />
                 </svg>
                 My Clubs
@@ -158,11 +181,7 @@ onUnmounted(() => {
           </div>
 
           <!-- Players panel -->
-          <ClubPlayersPanel
-            :clubId="clubId"
-            :currentUid="currentUid"
-            :myPlayer="myPlayer"
-          />
+          <ClubPlayersPanel :clubId="clubId" :currentUid="currentUid" :myPlayer="myPlayer" />
 
           <!-- Matches panel -->
           <div class="panel matches-panel">
@@ -171,8 +190,14 @@ onUnmounted(() => {
               <span class="count-badge">{{ completedMatches.length }}</span>
               <button
                 class="btn-sm-primary panel-hdr-btn"
-                :disabled="(!canCreateMatch && !formEditingMatch) || (showMatchForm && !formEditingMatch)"
-                :title="!canCreateMatch && !formEditingMatch ? 'Need at least 2 players to record a match' : ''"
+                :disabled="
+                  (!canCreateMatch && !formEditingMatch) || (showMatchForm && !formEditingMatch)
+                "
+                :title="
+                  !canCreateMatch && !formEditingMatch
+                    ? 'Need at least 2 players to record a match'
+                    : ''
+                "
                 @click="openMatchForm()"
               >
                 + New Match
@@ -198,7 +223,17 @@ onUnmounted(() => {
             <template v-if="scheduledMatches.length > 0">
               <div class="panel-divider"></div>
               <div class="upcoming-header">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
                   <line x1="16" y1="2" x2="16" y2="6" />
                   <line x1="8" y1="2" x2="8" y2="6" />
@@ -286,7 +321,9 @@ onUnmounted(() => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .spinner {

@@ -45,7 +45,8 @@ watch(participantMatches, async (matches) => {
   await Promise.all(
     missingIds.map(async (id) => {
       const snap = await getDoc(doc(db, 'clubs', id))
-      if (snap.exists()) externalClubs.value[id] = { id: snap.id, ...(snap.data() as Omit<Club, 'id'>) }
+      if (snap.exists())
+        externalClubs.value[id] = { id: snap.id, ...(snap.data() as Omit<Club, 'id'>) }
     }),
   )
 })
@@ -85,7 +86,8 @@ let unsubStandaloneMatches: (() => void) | null = null
 
 onMounted(() => {
   // clubsStore.clubs is kept live app-wide (see App.vue).
-  if (authStore.user) unsubStandaloneMatches = matchesStore.subscribeStandaloneMatches(authStore.user.uid)
+  if (authStore.user)
+    unsubStandaloneMatches = matchesStore.subscribeStandaloneMatches(authStore.user.uid)
 
   // Re-subscribe to club-scoped matches whenever the set of clubs I belong
   // to changes (e.g. a new club invite gets accepted).
@@ -126,7 +128,9 @@ const groupedMatches = computed(() => {
 })
 
 const participantScheduled = computed(() =>
-  participantMatches.value.filter((m) => m.scheduledAt && !m.winnerTeam && m.status !== 'cancelled'),
+  participantMatches.value.filter(
+    (m) => m.scheduledAt && !m.winnerTeam && m.status !== 'cancelled',
+  ),
 )
 
 const groupedScheduled = computed(() => {
@@ -144,7 +148,8 @@ const groupedScheduled = computed(() => {
 
 const totalCount = computed(
   () =>
-    matchesStore.allMatches.filter((m) => !!m.winnerTeam).length + participantCompleted.value.length,
+    matchesStore.allMatches.filter((m) => !!m.winnerTeam).length +
+    participantCompleted.value.length,
 )
 
 const goToClubForPlayNow = (match: Match) => {
@@ -171,7 +176,17 @@ const goToClubForPlayNow = (match: Match) => {
             <span v-if="totalCount > 0" class="total-badge">{{ totalCount }} total</span>
           </div>
           <button class="btn-primary" @click="showNewMatchModal = true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
@@ -181,7 +196,18 @@ const goToClubForPlayNow = (match: Match) => {
 
         <!-- Loading -->
         <div v-if="isLoading" class="loading-state">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spinner" aria-hidden="true">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="spinner"
+            aria-hidden="true"
+          >
             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
           </svg>
           Loading…
@@ -194,7 +220,17 @@ const goToClubForPlayNow = (match: Match) => {
         >
           <div class="empty-state">
             <div class="empty-icon">
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <svg
+                width="36"
+                height="36"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
                 <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
                 <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
                 <path d="M4 22h16" />
@@ -312,7 +348,9 @@ const goToClubForPlayNow = (match: Match) => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .spinner {
@@ -396,6 +434,5 @@ const goToClubForPlayNow = (match: Match) => {
     padding: 20px 16px;
     gap: 20px;
   }
-
 }
 </style>

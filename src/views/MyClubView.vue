@@ -15,8 +15,12 @@ const clubsStore = useClubsStore()
 const showForm = ref(false)
 const mobileMenuOpen = ref(false)
 
-const openForm = () => { showForm.value = true }
-const closeForm = () => { showForm.value = false }
+const openForm = () => {
+  showForm.value = true
+}
+const closeForm = () => {
+  showForm.value = false
+}
 
 onMounted(() => {
   // clubsStore.clubs is kept live app-wide (see App.vue).
@@ -42,7 +46,17 @@ onMounted(() => {
             <p class="page-subtitle">Manage your clubs</p>
           </div>
           <button v-if="!showForm" class="btn-primary" @click="openForm">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
@@ -52,7 +66,18 @@ onMounted(() => {
 
         <!-- Loading -->
         <div v-if="clubsStore.loading" class="loading-state">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="spinner" aria-hidden="true">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="spinner"
+            aria-hidden="true"
+          >
             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
           </svg>
           Loading...
@@ -66,7 +91,17 @@ onMounted(() => {
           <div v-if="clubsStore.clubs.length === 0 && !showForm" class="empty-area">
             <div class="empty-state">
               <div class="empty-icon">
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <svg
+                  width="36"
+                  height="36"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
                   <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
@@ -154,7 +189,9 @@ onMounted(() => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .spinner {

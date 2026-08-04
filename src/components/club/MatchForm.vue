@@ -3,6 +3,8 @@ import { ref, computed } from 'vue'
 import type { Match } from '@/stores/matches'
 import { useMatchesStore } from '@/stores/matches'
 import type { Player } from '@/stores/players'
+import { useUsersStore } from '@/stores/users'
+import { formatNtrp } from '@/utils/ntrp'
 
 const props = defineProps<{
   clubId: string
@@ -19,6 +21,7 @@ const emit = defineEmits<{
 }>()
 
 const matchesStore = useMatchesStore()
+const usersStore = useUsersStore()
 
 const matchA1 = ref(
   props.initialTeamA?.[0] ?? props.editingMatch?.teamA[0] ?? props.myPlayerId ?? '',
@@ -43,10 +46,12 @@ const submitting = ref(false)
 const todayStr = computed(() => new Date().toISOString().slice(0, 10))
 
 const playerName = (id: string) => props.players.find((p) => p.id === id)?.name ?? ''
-const optionLabel = (p: Player) =>
-  p.uid && p.uid === props.players.find((pl) => pl.id === props.myPlayerId)?.uid
-    ? `${p.name} (You)`
-    : p.name
+const optionLabel = (p: Player) => {
+  const isMe = p.uid && p.uid === props.players.find((pl) => pl.id === props.myPlayerId)?.uid
+  const base = isMe ? `${p.name} (You)` : p.name
+  const rating = p.uid ? usersStore.allUsers.find((u) => u.uid === p.uid)?.rating : undefined
+  return rating !== undefined ? `${base} · NTRP ${formatNtrp(rating)}` : base
+}
 
 const teamALabel = computed(() => {
   const names = [matchA1.value, matchA2.value].filter(Boolean).map(playerName)

@@ -33,11 +33,11 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    async register(email: string, password: string) {
+    async register(email: string, password: string, initialRating: number) {
       const credential = await createUserWithEmailAndPassword(auth, email, password)
       localStorage.setItem('loginAt', String(Date.now()))
       this.user = credential.user
-      await this.createUserProfile(credential.user)
+      await this.createUserProfile(credential.user, initialRating)
       this.scheduleExpiry()
     },
 
@@ -100,7 +100,11 @@ export const useAuthStore = defineStore('auth', {
       this.scheduleExpiry()
     },
 
-    async createUserProfile(user: User) {
+    // initialRating is only passed for brand-new email/password sign-ups
+    // (from the NTRP picker on the register form)
+    // Ommited for Google sign-in, which calls this on every login and would otherwise
+    // clobber a rating already earned through match play.
+    async createUserProfile(user: User, initialRating?: number) {
       await setDoc(
         doc(db, 'users', user.uid),
         {
@@ -108,6 +112,7 @@ export const useAuthStore = defineStore('auth', {
           displayName: user.displayName,
           photoUrl: user.photoURL,
           createdAt: Date.now(),
+          ...(initialRating !== undefined ? { rating: initialRating } : {}),
         },
         {
           merge: true,
