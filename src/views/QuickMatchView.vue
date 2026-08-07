@@ -5,7 +5,7 @@ import SidebarNav from '@/components/layout/SidebarNav.vue'
 import MobileTopBar from '@/components/layout/MobileTopBar.vue'
 import QuickMatchForm from '@/components/quickmatch/QuickMatchForm.vue'
 import { useMatchesStore, OPEN_SLOT_ID } from '@/stores/matches'
-import type { StandaloneParticipant } from '@/stores/matches'
+import type { StandaloneParticipant, MatchFormat } from '@/stores/matches'
 
 const route = useRoute()
 const router = useRouter()
@@ -16,6 +16,7 @@ const onSaved = () => router.push('/matches')
 
 const initialTeamA = ref<StandaloneParticipant[]>([])
 const initialTeamB = ref<StandaloneParticipant[]>([])
+const initialMatchFormat = ref<MatchFormat | undefined>(undefined)
 
 const toParticipants = (ids: string[], names?: string[]): StandaloneParticipant[] =>
   ids.map((id, i) => ({
@@ -32,6 +33,7 @@ onMounted(async () => {
   await matchesStore.cancelScheduledMatch(match.id)
   initialTeamA.value = toParticipants(match.teamA, match.teamANames)
   initialTeamB.value = toParticipants(match.teamB, match.teamBNames)
+  initialMatchFormat.value = match.matchFormat
   router.replace({ path: '/matches/new' })
 })
 </script>
@@ -71,6 +73,7 @@ onMounted(async () => {
           <QuickMatchForm
             :initialTeamA="initialTeamA"
             :initialTeamB="initialTeamB"
+            :initialMatchFormat="initialMatchFormat"
             @cancel="goBack"
             @saved="onSaved"
           />
