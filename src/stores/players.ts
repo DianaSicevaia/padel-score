@@ -75,8 +75,8 @@ export const usePlayersStore = defineStore('players', {
         losses: 0,
         createdAt: now,
       }
-      const docRef = await addDoc(collection(db, 'players'), data)
-      this.players.push({ id: docRef.id, ...data })
+
+      await addDoc(collection(db, 'players'), data)
 
       if (uid && isSelf) {
         await useClubsStore().addMember(clubId, uid)

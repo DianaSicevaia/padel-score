@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useMatchesStore } from '@/stores/matches'
-import type { StandaloneParticipant } from '@/stores/matches'
+import { useMatchesStore, buildScheduleDetails } from '@/stores/matches'
+import type { StandaloneParticipant, MatchFormat, CompetitiveScope } from '@/stores/matches'
 import { useAuthStore } from '@/stores/auth'
+import { CITIES } from '@/utils/courts'
 import PlayerPicker from '@/components/quickmatch/PlayerPicker.vue'
+import ScheduleDetailsFields from '@/components/schedule/ScheduleDetailsFields.vue'
 
 const props = defineProps<{
   initialTeamA?: StandaloneParticipant[]
   initialTeamB?: StandaloneParticipant[]
+  initialMatchFormat?: MatchFormat
 }>()
 
 const emit = defineEmits<{
@@ -30,6 +33,15 @@ const showWinnerPicker = ref(false)
 const isScheduling = ref(false)
 const schedDate = ref('')
 const schedTime = ref('')
+
+const scheduleDuration = ref(90)
+const scheduleFormat = ref<MatchFormat>('competitive')
+const scheduleScope = ref<CompetitiveScope>('open')
+const scheduleRankMin = ref(3.0)
+const scheduleRankMax = ref(4.0)
+const scheduleCity = ref(CITIES[0]!)
+const scheduleCourt = ref('')
+
 const matchError = ref('')
 const submitting = ref(false)
 
@@ -123,10 +135,19 @@ const submit = async () => {
       matchError.value = 'Scheduled time must be in the future.'
       return
     }
+    const details = buildScheduleDetails({
+      durationMinutes: scheduleDuration.value,
+      matchFormat: scheduleFormat.value,
+      competitiveScope: scheduleScope.value,
+      rankMin: scheduleRankMin.value,
+      rankMax: scheduleRankMax.value,
+      city: scheduleCity.value,
+      court: scheduleCourt.value,
+    })
     submitting.value = true
     matchError.value = ''
     try {
-      await matchesStore.createStandaloneScheduledMatch(teamA, teamB, scheduledAt, uid)
+      await matchesStore.createStandaloneScheduledMatch(teamA, teamB, scheduledAt, uid, details)
       emit('saved')
     } catch {
       matchError.value = 'Failed to schedule match. Please try again.'
@@ -168,7 +189,14 @@ const submit = async () => {
   submitting.value = true
   matchError.value = ''
   try {
-    await matchesStore.createStandaloneMatch(teamA, teamB, sets, uid, winnerOverride)
+    await matchesStore.createStandaloneMatch(
+      teamA,
+      teamB,
+      sets,
+      uid,
+      winnerOverride,
+      props.initialMatchFormat,
+    )
     emit('saved')
   } catch {
     matchError.value = 'Failed to save match. Please try again.'
@@ -180,6 +208,9 @@ const submit = async () => {
 
 <template>
   <div class="match-form">
+    <p v-if="initialMatchFormat === 'friendly'" class="friendly-note">
+      Friendly match — the result won't affect anyone's rating.
+    </p>
     <div class="match-form-teams">
       <div class="match-form-team">
         <PlayerPicker
@@ -248,6 +279,15 @@ const submit = async () => {
         <label class="sched-label">Time</label>
         <input type="time" v-model="schedTime" class="sched-input" />
       </div>
+      <ScheduleDetailsFields
+        v-model:duration-minutes="scheduleDuration"
+        v-model:match-format="scheduleFormat"
+        v-model:competitive-scope="scheduleScope"
+        v-model:rank-min="scheduleRankMin"
+        v-model:rank-max="scheduleRankMax"
+        v-model:city="scheduleCity"
+        v-model:court="scheduleCourt"
+      />
     </template>
     <template v-else>
       <div class="match-form-sets">
@@ -711,6 +751,17 @@ const submit = async () => {
   font-family: 'Inter', sans-serif;
   font-size: 12px;
   color: var(--color-danger);
+  margin: 0;
+}
+
+.friendly-note {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+  border-radius: 8px;
+  padding: 8px 12px;
   margin: 0;
 }
 

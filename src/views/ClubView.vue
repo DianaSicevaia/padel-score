@@ -7,7 +7,7 @@ import SidebarNav from '@/components/layout/SidebarNav.vue'
 import MobileTopBar from '@/components/layout/MobileTopBar.vue'
 import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
 import { useMatchesStore } from '@/stores/matches'
-import type { Match } from '@/stores/matches'
+import type { Match, MatchFormat } from '@/stores/matches'
 import { useAuthStore } from '@/stores/auth'
 import ClubPlayersPanel from '@/components/club/ClubPlayersPanel.vue'
 import MatchForm from '@/components/club/MatchForm.vue'
@@ -39,11 +39,13 @@ const showMatchForm = ref(false)
 const formEditingMatch = ref<Match | null>(null)
 const formInitialTeamA = ref<string[]>([])
 const formInitialTeamB = ref<string[]>([])
+const formInitialMatchFormat = ref<MatchFormat | undefined>(undefined)
 
 const openMatchForm = (match?: Match) => {
   formEditingMatch.value = match ?? null
   formInitialTeamA.value = []
   formInitialTeamB.value = []
+  formInitialMatchFormat.value = undefined
   showMatchForm.value = true
 }
 
@@ -52,6 +54,7 @@ const closeMatchForm = () => {
   formEditingMatch.value = null
   formInitialTeamA.value = []
   formInitialTeamB.value = []
+  formInitialMatchFormat.value = undefined
 }
 
 // ── Match actions ──────────────────────────────────
@@ -72,6 +75,7 @@ const handlePlayNow = async (match: Match) => {
   formEditingMatch.value = null
   formInitialTeamA.value = [...match.teamA]
   formInitialTeamB.value = [...match.teamB]
+  formInitialMatchFormat.value = match.matchFormat
   showMatchForm.value = true
 }
 
@@ -214,6 +218,7 @@ onUnmounted(() => {
                 :editingMatch="formEditingMatch"
                 :initialTeamA="formInitialTeamA"
                 :initialTeamB="formInitialTeamB"
+                :initialMatchFormat="formInitialMatchFormat"
                 @cancel="closeMatchForm"
                 @saved="closeMatchForm"
               />

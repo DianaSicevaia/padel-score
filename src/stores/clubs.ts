@@ -96,8 +96,8 @@ export const useClubsStore = defineStore('clubs', {
         memberIds: [] as string[],
         createdAt: now,
       }
-      const docRef = await addDoc(collection(db, 'clubs'), data)
-      this.clubs.push({ id: docRef.id, ...data })
+
+      await addDoc(collection(db, 'clubs'), data)
     },
 
     async addMember(clubId: string, uid: string) {

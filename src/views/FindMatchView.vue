@@ -9,6 +9,7 @@ import MobileTopBar from '@/components/layout/MobileTopBar.vue'
 import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
 import TeamRoster from '@/components/shared/TeamRoster.vue'
 import type { RosterPlayer } from '@/components/shared/TeamRoster.vue'
+import { matchFormatLabel, matchLocationLabel } from '@/utils/matchDetails'
 
 const authStore = useAuthStore()
 const matchesStore = useMatchesStore()
@@ -119,7 +120,11 @@ const join = async (match: Match, side: 'A' | 'B') => {
                 <TeamRoster class="find-roster" :players="teamRoster(match, 'B')" align="end" />
               </div>
               <div class="match-meta">
-                <span class="match-date">{{ formatDate(match.scheduledAt!) }}</span>
+                <div class="match-meta-info">
+                  <span class="match-date">{{ formatDate(match.scheduledAt!) }}</span>
+                  <span v-if="matchFormatLabel(match)" class="match-format-badge">{{ matchFormatLabel(match) }}</span>
+                  <span v-if="matchLocationLabel(match)" class="match-location">{{ matchLocationLabel(match) }}</span>
+                </div>
                 <div class="join-actions">
                   <button
                     v-if="hasOpenSide(match, 'A')"
@@ -286,11 +291,30 @@ const join = async (match: Match, side: 'A' | 'B') => {
   flex-wrap: wrap;
 }
 
+.match-meta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .match-date {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
   color: var(--color-text-muted);
   white-space: nowrap;
+}
+
+.match-format-badge {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.match-location {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--color-text-faint);
 }
 
 .join-actions {

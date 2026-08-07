@@ -5,6 +5,7 @@ import type { Club } from '@/stores/clubs'
 import { useUsersStore } from '@/stores/users'
 import TeamRoster from '@/components/shared/TeamRoster.vue'
 import type { RosterPlayer } from '@/components/shared/TeamRoster.vue'
+import { matchFormatLabel, matchLocationLabel } from '@/utils/matchDetails'
 
 const props = defineProps<{
   groups: { club?: Club; matches: Match[] }[]
@@ -100,21 +101,31 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
               />
             </div>
             <div class="upcoming-right">
-              <span class="match-date">
-                {{
-                  new Date(match.scheduledAt!).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                  })
-                }}
-                ·
-                {{
-                  new Date(match.scheduledAt!).toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })
-                }}
-              </span>
+              <div class="upcoming-meta-info">
+                <span class="match-date">
+                  {{
+                    new Date(match.scheduledAt!).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                    })
+                  }}
+                  ·
+                  {{
+                    new Date(match.scheduledAt!).toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })
+                  }}
+                </span>
+                <template v-if="!match.clubId">
+                  <span v-if="matchFormatLabel(match)" class="match-format-badge">{{
+                    matchFormatLabel(match)
+                  }}</span>
+                  <span v-if="matchLocationLabel(match)" class="match-location">{{
+                    matchLocationLabel(match)
+                  }}</span>
+                </template>
+              </div>
               <span v-if="match.status === 'pending'" class="pending-badge"
                 >Awaiting confirmation</span
               >
@@ -263,11 +274,30 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
   gap: 10px;
 }
 
+.upcoming-meta-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .match-date {
   font-family: 'Geist Mono', monospace;
   font-size: 11px;
   color: var(--color-text-subtle);
   white-space: nowrap;
+}
+
+.match-format-badge {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.match-location {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--color-text-faint);
 }
 
 .btn-play-now {

@@ -41,7 +41,23 @@ export interface StandaloneParticipant {
 
 export const OPEN_SLOT_ID = 'open'
 
-export interface Match {
+// 'friendly' matches are recorded but never touch anyone's rating/W-L record.
+// 'competitive' matches always do; 'ranked' vs 'open' is purely a label for
+// now (who the organizer is hoping to attract), not an enforced join filter.
+export type MatchFormat = 'competitive' | 'friendly'
+export type CompetitiveScope = 'ranked' | 'open'
+
+export interface ScheduleDetails {
+  durationMinutes?: number
+  matchFormat?: MatchFormat
+  competitiveScope?: CompetitiveScope
+  rankMin?: number
+  rankMax?: number
+  city?: string
+  court?: string
+}
+
+export interface Match extends ScheduleDetails {
   id: string
   clubId?: string
   teamA: string[]
@@ -100,6 +116,35 @@ function snapshotPlayers(players: Player[]): MatchPlayerSnapshot[] {
     wins: p.wins,
     losses: p.losses,
   }))
+}
+
+// Firestore rejects `undefined` field values, so strip any unset optional
+// schedule details before writing.
+function cleanDetails(details?: ScheduleDetails): ScheduleDetails {
+  if (!details) return {}
+  return Object.fromEntries(
+    Object.entries(details).filter(([, v]) => v !== undefined),
+  ) as ScheduleDetails
+}
+
+export function buildScheduleDetails(input: {
+  durationMinutes: number
+  matchFormat: MatchFormat
+  competitiveScope: CompetitiveScope
+  rankMin: number
+  rankMax: number
+  city: string
+  court: string
+}): ScheduleDetails {
+  const isRanked = input.matchFormat === 'competitive' && input.competitiveScope === 'ranked'
+  return cleanDetails({
+    durationMinutes: input.durationMinutes,
+    matchFormat: input.matchFormat,
+    ...(input.matchFormat === 'competitive' ? { competitiveScope: input.competitiveScope } : {}),
+    ...(isRanked ? { rankMin: input.rankMin, rankMax: input.rankMax } : {}),
+    ...(input.city ? { city: input.city } : {}),
+    ...(input.court ? { court: input.court } : {}),
+  })
 }
 
 // Old snapshots stored player name as playerId — resolve by id first, then by name
@@ -187,7 +232,9 @@ export const useMatchesStore = defineStore('matches', {
       sets: MatchSet[],
       creatorUid: string,
       winnerOverride?: 'A' | 'B',
+      matchFormat?: MatchFormat,
     ) {
+      const isFriendly = matchFormat === 'friendly'
       const usersStore = useUsersStore()
       const allParticipants = [...teamA, ...teamB]
       const uids = allParticipants.map((p) => p.uid).filter((u): u is string => !!u)
@@ -229,18 +276,24 @@ export const useMatchesStore = defineStore('matches', {
       const registeredA = teamA.filter((p) => p.uid).map(toPseudoPlayer)
       const registeredB = teamB.filter((p) => p.uid).map(toPseudoPlayer)
 
-      const statsUpdates = [
-        ...computeEloUpdates(registeredA, avgA, avgB, winnerTeam === 'A'),
-        ...computeEloUpdates(registeredB, avgB, avgA, winnerTeam === 'B'),
-      ]
+      // Friendly matches are recorded (for history) but never touch anyone's
+      // rating or W/L record.
+      const statsUpdates = isFriendly
+        ? []
+        : [
+            ...computeEloUpdates(registeredA, avgA, avgB, winnerTeam === 'A'),
+            ...computeEloUpdates(registeredB, avgB, avgA, winnerTeam === 'B'),
+          ]
 
-      const before: MatchPlayerSnapshot[] = [...registeredA, ...registeredB].map((p) => ({
-        playerId: p.id,
-        rating: p.rating,
-        matchesPlayed: p.matchesPlayed,
-        wins: p.wins,
-        losses: p.losses,
-      }))
+      const before: MatchPlayerSnapshot[] = isFriendly
+        ? []
+        : [...registeredA, ...registeredB].map((p) => ({
+            playerId: p.id,
+            rating: p.rating,
+            matchesPlayed: p.matchesPlayed,
+            wins: p.wins,
+            losses: p.losses,
+          }))
 
       const participantUids = Array.from(new Set([...uids, creatorUid]))
 
@@ -257,10 +310,10 @@ export const useMatchesStore = defineStore('matches', {
         createdAt: now,
         before,
         participantUids,
+        ...(matchFormat ? { matchFormat } : {}),
       }
 
-      const docRef = await addDoc(collection(db, 'matches'), matchData)
-      this.standaloneMatches.unshift({ id: docRef.id, ...matchData })
+      await addDoc(collection(db, 'matches'), matchData)
 
       const uidUpdates = statsUpdates.map((u) => ({
         uid: u.id,
@@ -278,7 +331,9 @@ export const useMatchesStore = defineStore('matches', {
       teamB: string[],
       sets: MatchSet[],
       winnerOverride?: 'A' | 'B',
+      matchFormat?: MatchFormat,
     ) {
+      const isFriendly = matchFormat === 'friendly'
       const playersStore = usePlayersStore()
       const resolve = (id: string) => playersStore.players.find((p) => p.id === id)!
 
@@ -297,10 +352,14 @@ export const useMatchesStore = defineStore('matches', {
       const scoreB = sets.filter((s) => s.scoreB > s.scoreA).length
       const winnerTeam: 'A' | 'B' = winnerOverride ?? (scoreA > scoreB ? 'A' : 'B')
 
-      const statsUpdates = [
-        ...computeEloUpdates(playersA, avgA, avgB, winnerTeam === 'A'),
-        ...computeEloUpdates(playersB, avgB, avgA, winnerTeam === 'B'),
-      ]
+      // Friendly matches are recorded (for history) but never touch anyone's
+      // rating or W/L record.
+      const statsUpdates = isFriendly
+        ? []
+        : [
+            ...computeEloUpdates(playersA, avgA, avgB, winnerTeam === 'A'),
+            ...computeEloUpdates(playersB, avgB, avgA, winnerTeam === 'B'),
+          ]
 
       const participantUids = Array.from(
         new Set([...playersA, ...playersB].map((p) => p.uid).filter((u): u is string => !!u)),
@@ -318,14 +377,14 @@ export const useMatchesStore = defineStore('matches', {
         scoreB,
         winnerTeam,
         createdAt: now,
-        before,
+        before: isFriendly ? [] : before,
         ...(participantUids.length ? { participantUids } : {}),
+        ...(matchFormat ? { matchFormat } : {}),
       }
 
-      const docRef = await addDoc(collection(db, 'matches'), matchData)
-      this.matches.unshift({ id: docRef.id, ...matchData })
+      await addDoc(collection(db, 'matches'), matchData)
 
-      await playersStore.applyMatchResult(statsUpdates)
+      if (statsUpdates.length) await playersStore.applyMatchResult(statsUpdates)
     },
 
     async deleteMatch(matchId: string) {
@@ -423,6 +482,7 @@ export const useMatchesStore = defineStore('matches', {
       teamAIds: string[],
       teamBIds: string[],
       scheduledAt: number,
+      details?: ScheduleDetails,
     ) {
       const playersStore = usePlayersStore()
       const authStore = useAuthStore()
@@ -454,9 +514,10 @@ export const useMatchesStore = defineStore('matches', {
         ...(participantUids.length ? { participantUids } : {}),
         ...(inviteeUids.length ? { status: 'pending' as const, pendingUids: inviteeUids } : {}),
         ...(currentUid ? { createdBy: currentUid } : {}),
+        ...cleanDetails(details),
       }
+
       const docRef = await addDoc(collection(db, 'matches'), matchData)
-      this.matches.unshift({ id: docRef.id, ...matchData })
 
       if (inviteeUids.length) {
         const clubName = useClubsStore().clubs.find((c) => c.id === clubId)?.name ?? 'a club'
@@ -476,6 +537,7 @@ export const useMatchesStore = defineStore('matches', {
       teamB: StandaloneParticipant[],
       scheduledAt: number,
       creatorUid: string,
+      details?: ScheduleDetails,
     ) {
       const genGuestId = () =>
         `guest-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`
@@ -507,10 +569,11 @@ export const useMatchesStore = defineStore('matches', {
         participantUids,
         createdBy: creatorUid,
         hasOpenSlot,
+        ...cleanDetails(details),
         ...(inviteeUids.length ? { status: 'pending' as const, pendingUids: inviteeUids } : {}),
       }
+
       const docRef = await addDoc(collection(db, 'matches'), matchData)
-      this.standaloneMatches.unshift({ id: docRef.id, ...matchData })
 
       if (inviteeUids.length) {
         await useNotificationsStore().createMatchInviteNotifications(

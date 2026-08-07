@@ -195,7 +195,11 @@ const myAvatarBackground = computed(
         </svg>
         Leaderboard
       </a>
-      <a class="sb-nav-item">
+      <a
+        class="sb-nav-item"
+        :class="{ 'sb-nav-item--active': route.path === '/schedule' }"
+        @click="router.push('/schedule')"
+      >
         <svg
           width="20"
           height="20"

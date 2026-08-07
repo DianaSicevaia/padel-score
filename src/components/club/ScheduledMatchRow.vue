@@ -6,6 +6,7 @@ import type { Player } from '@/stores/players'
 import { useUsersStore } from '@/stores/users'
 import TeamRoster from '@/components/shared/TeamRoster.vue'
 import type { RosterPlayer } from '@/components/shared/TeamRoster.vue'
+import { matchFormatLabel, matchLocationLabel } from '@/utils/matchDetails'
 
 const props = defineProps<{
   match: Match
@@ -112,6 +113,8 @@ const confirmEdit = async () => {
           </svg>
           {{ formatScheduled(match.scheduledAt!) }}
         </span>
+        <span v-if="matchFormatLabel(match)" class="match-format-badge">{{ matchFormatLabel(match) }}</span>
+        <span v-if="matchLocationLabel(match)" class="match-location">{{ matchLocationLabel(match) }}</span>
       </div>
       <div class="scheduled-actions">
         <span v-if="match.status === 'pending'" class="status-badge">Awaiting confirmation</span>
@@ -212,6 +215,19 @@ const confirmEdit = async () => {
 
 .scheduled-time svg {
   flex-shrink: 0;
+}
+
+.match-format-badge {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.match-location {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--color-text-faint);
 }
 
 .scheduled-actions {
