@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { RankEntry } from '@/types/dashboard'
+import router from '@/router'
 
 defineProps<{
   rankEntries: RankEntry[]
@@ -24,25 +25,27 @@ const onRankMouseEnter = (e: MouseEvent, key: string) => {
     <!-- Header -->
     <div class="panel-hdr">
       <span class="panel-title">Club Rankings</span>
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        class="trophy-icon"
-        aria-hidden="true"
-      >
-        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-        <path d="M4 22h16" />
-        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
-        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
-        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
-      </svg>
+      <button class="btn-matches" aria-label="Matches" @click="router.push('/matches')">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="trophy-icon"
+          aria-hidden="true"
+        >
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+          <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+          <path d="M4 22h16" />
+          <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+        </svg>
+      </button>
     </div>
 
     <div class="panel-divider"></div>
@@ -297,6 +300,12 @@ const onRankMouseEnter = (e: MouseEvent, key: string) => {
   font-size: 12px;
   font-weight: 700;
   color: var(--color-white);
+}
+
+.btn-matches {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
 }
 
 @media (max-width: 768px) {
