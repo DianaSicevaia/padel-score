@@ -5,8 +5,6 @@ export interface Court {
   address: string
 }
 
-// Structured so more cities/courts are just more list entries away, no code
-// changes needed.
 export const CITIES: string[] = ['Chișinău', 'Cherkasy']
 
 export const COURTS: Court[] = [

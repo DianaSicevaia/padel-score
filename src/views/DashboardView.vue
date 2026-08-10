@@ -238,9 +238,11 @@ const myUpcomingMatches = computed(() => {
   for (const m of matchesStore.allMatches) byId.set(m.id, m)
   for (const m of matchesStore.standaloneMatches) if (!byId.has(m.id)) byId.set(m.id, m)
 
+  const now = Date.now()
   return [...byId.values()]
     .filter((m) => {
-      if (!m.scheduledAt || m.winnerTeam || m.status === 'cancelled') return false
+      if (!m.scheduledAt || m.scheduledAt < now || m.winnerTeam || m.status === 'cancelled')
+        return false
       return m.clubId
         ? m.teamA.some((id) => ids.has(id)) || m.teamB.some((id) => ids.has(id))
         : !!uid && !!m.participantUids?.includes(uid)
