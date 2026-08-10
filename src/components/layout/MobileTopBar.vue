@@ -52,7 +52,7 @@ const notificationsStore = useNotificationsStore()
       </svg>
     </button>
 
-    <div class="m-topbar-logo">
+    <div class="m-topbar-logo" @click="router.push('/dashboard')">
       <div class="m-logo-icon">P</div>
       <span class="m-logo-text">Padel Club</span>
     </div>
@@ -107,6 +107,7 @@ const notificationsStore = useNotificationsStore()
     display: flex;
     align-items: center;
     gap: 8px;
+    cursor: pointer;
   }
 
   .m-logo-icon {

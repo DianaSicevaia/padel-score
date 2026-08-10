@@ -36,10 +36,15 @@ const myAvatarBackground = computed(
 <template>
   <div v-if="mobileOpen" class="sb-backdrop" @click="emit('close')"></div>
   <aside class="sidebar" :class="{ 'sidebar--mobile-open': mobileOpen }">
-    <div class="sb-logo">
+    <div class="sb-logo" @click="router.push('/dashboard')">
       <div class="sb-logo-icon">P</div>
       <span class="sb-logo-text">Padel Club</span>
-      <button v-if="mobileOpen" class="sb-close-btn" aria-label="Close menu" @click="emit('close')">
+      <button
+        v-if="mobileOpen"
+        class="sb-close-btn"
+        aria-label="Close menu"
+        @click.stop="emit('close')"
+      >
         <svg
           width="20"
           height="20"
@@ -279,6 +284,7 @@ const myAvatarBackground = computed(
   align-items: center;
   gap: 10px;
   padding-bottom: 20px;
+  cursor: pointer;
 }
 
 .sb-logo-icon {

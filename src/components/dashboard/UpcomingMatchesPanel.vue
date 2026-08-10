@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Match } from '@/stores/matches'
 import type { Club } from '@/stores/clubs'
+import router from '@/router'
 
 const props = defineProps<{
   upcomingMatches: Match[]
@@ -31,23 +32,25 @@ const teamLabel = (names?: string[], ids?: string[]) =>
   <div class="panel um-panel">
     <div class="panel-hdr">
       <span class="panel-title">Upcoming Matches</span>
-      <svg
-        width="18"
-        height="18"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        class="calendar-icon"
-        aria-hidden="true"
-      >
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-        <line x1="16" y1="2" x2="16" y2="6" />
-        <line x1="8" y1="2" x2="8" y2="6" />
-        <line x1="3" y1="10" x2="21" y2="10" />
-      </svg>
+      <button class="btn-schedule" aria-label="Schedule" @click="router.push('/schedule')">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="calendar-icon"
+          aria-hidden="true"
+        >
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      </button>
     </div>
 
     <div class="panel-divider"></div>
@@ -226,6 +229,12 @@ const teamLabel = (names?: string[], ids?: string[]) =>
   color: var(--color-text-faint);
   text-align: center;
   margin: 4px 0 0;
+}
+
+.btn-schedule {
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
 }
 
 @media (max-width: 768px) {
