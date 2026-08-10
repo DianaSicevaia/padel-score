@@ -127,19 +127,16 @@ const groupedMatches = computed(() => {
   return groups.sort((a, b) => (b.matches[0]?.createdAt ?? 0) - (a.matches[0]?.createdAt ?? 0))
 })
 
-const participantScheduled = computed(() =>
-  participantMatches.value.filter(
-    (m) => m.scheduledAt && !m.winnerTeam && m.status !== 'cancelled',
-  ),
-)
+const isUpcoming = (m: Match) =>
+  !!m.scheduledAt && m.scheduledAt >= Date.now() && !m.winnerTeam && m.status !== 'cancelled'
+
+const participantScheduled = computed(() => participantMatches.value.filter(isUpcoming))
 
 const groupedScheduled = computed(() => {
   const clubGroups = clubsStore.clubs
     .map((club) => ({
       club: club as Club | undefined,
-      matches: matchesStore.allMatches.filter(
-        (m) => m.clubId === club.id && m.scheduledAt && !m.winnerTeam && m.status !== 'cancelled',
-      ),
+      matches: matchesStore.allMatches.filter((m) => m.clubId === club.id && isUpcoming(m)),
     }))
     .filter((g) => g.matches.length > 0)
 
