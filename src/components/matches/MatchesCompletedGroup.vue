@@ -349,6 +349,8 @@ const formatDate = (ts: number) =>
   color: var(--color-text-subtle);
   white-space: nowrap;
   flex-shrink: 0;
+  width: 12ch;
+  text-align: right;
 }
 
 @media (max-width: 768px) {
@@ -358,6 +360,17 @@ const formatDate = (ts: number) =>
 
   .match-row {
     padding: 10px 16px;
+  }
+
+  .match-row-main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .match-date {
+    width: auto;
+    text-align: center;
   }
 }
 </style>
