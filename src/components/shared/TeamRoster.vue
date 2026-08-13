@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
 import PlayerAvatar from '@/components/shared/PlayerAvatar.vue'
 import { formatNtrp } from '@/utils/ntrp'
 
@@ -22,6 +23,21 @@ withDefaults(
   }>(),
   { align: 'start', avatarSize: 24 },
 )
+
+const isGuest = (p: RosterPlayer) => !p.linkUid && !p.isOpen
+const openGuestId = ref<string | null>(null)
+
+const toggleGuestTooltip = (p: RosterPlayer) => {
+  if (!isGuest(p)) return
+  openGuestId.value = openGuestId.value === p.id ? null : p.id
+}
+
+const closeGuestTooltip = () => {
+  openGuestId.value = null
+}
+
+onMounted(() => document.addEventListener('click', closeGuestTooltip))
+onUnmounted(() => document.removeEventListener('click', closeGuestTooltip))
 </script>
 
 <template>
@@ -44,7 +60,8 @@ withDefaults(
           <component
             :is="p.linkUid ? 'router-link' : 'span'"
             :to="p.linkUid ? `/players/${p.linkUid}` : undefined"
-            class="roster-player-name"
+            :class="['roster-player-name', { 'is-guest': isGuest(p) }]"
+            @click.stop="toggleGuestTooltip(p)"
           >
             {{ p.name }}
           </component>
@@ -56,6 +73,8 @@ withDefaults(
         <component
           :is="p.linkUid ? 'router-link' : 'div'"
           :to="p.linkUid ? `/players/${p.linkUid}` : undefined"
+          :class="{ 'is-guest': isGuest(p) }"
+          @click.stop="toggleGuestTooltip(p)"
         >
           <PlayerAvatar
             :id="p.id"
@@ -70,6 +89,8 @@ withDefaults(
         <component
           :is="p.linkUid ? 'router-link' : 'div'"
           :to="p.linkUid ? `/players/${p.linkUid}` : undefined"
+          :class="{ 'is-guest': isGuest(p) }"
+          @click.stop="toggleGuestTooltip(p)"
         >
           <PlayerAvatar
             :id="p.id"
@@ -83,7 +104,8 @@ withDefaults(
           <component
             :is="p.linkUid ? 'router-link' : 'span'"
             :to="p.linkUid ? `/players/${p.linkUid}` : undefined"
-            class="roster-player-name"
+            :class="['roster-player-name', { 'is-guest': isGuest(p) }]"
+            @click.stop="toggleGuestTooltip(p)"
           >
             {{ p.name }}
           </component>
@@ -93,6 +115,8 @@ withDefaults(
           <span v-if="p.pending" class="roster-player-badge">Invited</span>
         </div>
       </template>
+
+      <div v-if="openGuestId === p.id" class="guest-tooltip">Guest profile</div>
     </div>
   </div>
 </template>
@@ -113,6 +137,7 @@ withDefaults(
   align-items: center;
   gap: 6px;
   min-width: 0;
+  position: relative;
 }
 
 .roster-player > a,
@@ -150,6 +175,29 @@ withDefaults(
 a.roster-player-name:hover {
   color: var(--color-accent);
   text-decoration: underline;
+}
+
+.is-guest {
+  cursor: pointer;
+}
+
+.guest-tooltip {
+  position: absolute;
+  background: #1a1a1a;
+  color: var(--color-white);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 30;
+  pointer-events: none;
+}
+
+.roster--end .guest-tooltip {
+  left: auto;
+  right: 0;
 }
 
 .roster--winner .roster-player-name {

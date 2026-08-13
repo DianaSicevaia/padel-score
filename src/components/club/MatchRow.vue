@@ -283,6 +283,8 @@ const formatDate = (ts: number) =>
   color: var(--color-text-subtle);
   white-space: nowrap;
   flex-shrink: 0;
+  width: 12ch;
+  text-align: right;
 }
 
 .match-row-actions {
@@ -340,6 +342,17 @@ const formatDate = (ts: number) =>
 @media (max-width: 768px) {
   .match-teams-display {
     gap: 8px;
+  }
+
+  .match-row-main {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .match-date-label {
+    width: auto;
+    text-align: center;
   }
 }
 </style>
