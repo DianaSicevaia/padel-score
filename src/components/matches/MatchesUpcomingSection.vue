@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { OPEN_SLOT_ID } from '@/stores/matches'
+import { OPEN_SLOT_ID, useMatchesStore } from '@/stores/matches'
 import type { Match } from '@/stores/matches'
 import type { Club } from '@/stores/clubs'
 import { useUsersStore } from '@/stores/users'
@@ -18,6 +18,23 @@ const emit = defineEmits<{
 }>()
 
 const usersStore = useUsersStore()
+const matchesStore = useMatchesStore()
+
+const canKickFrom = (m: Match) => (p: RosterPlayer) => {
+  if (m.clubId || p.isOpen || !p.linkUid) return false
+  const isOrganizer = m.createdBy === props.currentUid
+  return isOrganizer ? p.linkUid !== props.currentUid : p.linkUid === props.currentUid
+}
+
+const kick = (matchId: string, p: RosterPlayer) => {
+  if (!p.linkUid || !props.currentUid) return
+  const isSelf = p.linkUid === props.currentUid
+  const message = isSelf
+    ? 'Leave this match? Your slot will open up for someone else.'
+    : `Remove ${p.name} from this match?`
+  if (!confirm(message)) return
+  matchesStore.removeFromSlot(matchId, p.linkUid, props.currentUid)
+}
 
 // Club-match team entries are club-roster ids (not uids), so photo/invite
 // lookups only resolve for standalone (no-club) matches.
@@ -91,6 +108,8 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
                 :players="teamRoster(match, 'A')"
                 align="start"
                 :avatarSize="24"
+                :canKick="canKickFrom(match)"
+                @kick="kick(match.id, $event)"
               />
               <div class="upcoming-vs">VS</div>
               <TeamRoster
@@ -98,6 +117,8 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
                 :players="teamRoster(match, 'B')"
                 align="end"
                 :avatarSize="24"
+                :canKick="canKickFrom(match)"
+                @kick="kick(match.id, $event)"
               />
             </div>
             <div class="upcoming-right">

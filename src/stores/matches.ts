@@ -8,6 +8,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
   doc,
   runTransaction,
 } from 'firebase/firestore'
@@ -47,6 +48,10 @@ export const OPEN_SLOT_ID = 'open'
 export type MatchFormat = 'competitive' | 'friendly'
 export type CompetitiveScope = 'ranked' | 'open'
 
+// Same as competitiveScope: a label for who the organizer is hoping to play
+// with, not an enforced join filter.
+export type GenderPreference = 'neutral' | 'men' | 'women'
+
 export interface ScheduleDetails {
   durationMinutes?: number
   matchFormat?: MatchFormat
@@ -55,6 +60,7 @@ export interface ScheduleDetails {
   rankMax?: number
   city?: string
   court?: string
+  genderPreference?: GenderPreference
 }
 
 export interface Match extends ScheduleDetails {
@@ -135,6 +141,7 @@ export function buildScheduleDetails(input: {
   rankMax: number
   city: string
   court: string
+  genderPreference: GenderPreference
 }): ScheduleDetails {
   const isRanked = input.matchFormat === 'competitive' && input.competitiveScope === 'ranked'
   return cleanDetails({
@@ -144,6 +151,7 @@ export function buildScheduleDetails(input: {
     ...(isRanked ? { rankMin: input.rankMin, rankMax: input.rankMax } : {}),
     ...(input.city ? { city: input.city } : {}),
     ...(input.court ? { court: input.court } : {}),
+    ...(input.genderPreference !== 'neutral' ? { genderPreference: input.genderPreference } : {}),
   })
 }
 
@@ -654,6 +662,91 @@ export const useMatchesStore = defineStore('matches', {
           const idx = arr.findIndex((m) => m.id === matchId)
           if (idx !== -1) arr[idx] = stillOpen
         }
+
+        if (stillOpen.createdBy && stillOpen.createdBy !== joinerUid) {
+          const label = `${(stillOpen.teamANames ?? stillOpen.teamA).join(' & ')} vs ${(stillOpen.teamBNames ?? stillOpen.teamB).join(' & ')}`
+          await useNotificationsStore().createMatchRosterNotification(
+            stillOpen.createdBy,
+            'match_joined',
+            matchId,
+            label,
+            stillOpen.scheduledAt ?? Date.now(),
+            joinerName,
+          )
+        }
+      }
+    },
+
+    // Vacates a claimed slot — either the match creator removing a player who
+    // self-joined (didn't like the look of their profile), or a player
+    // removing themselves after joining by mistake. `actorUid` is whoever
+    // triggered the removal; `targetUid` is whoever's slot gets vacated.
+    // Mirrors declineNotification's own-choice version of this, rather than
+    // cancelling the whole match.
+    async removeFromSlot(matchId: string, targetUid: string, actorUid: string) {
+      const matchRef = doc(db, 'matches', matchId)
+      const snap = await getDoc(matchRef)
+      if (!snap.exists()) return
+      const data = snap.data() as Omit<Match, 'id'>
+
+      const teamA = [...data.teamA]
+      const teamB = [...data.teamB]
+      const teamANames = [...(data.teamANames ?? teamA)]
+      const teamBNames = [...(data.teamBNames ?? teamB)]
+      let changed = false
+      let removedName = ''
+
+      const idxA = teamA.indexOf(targetUid)
+      if (idxA !== -1) {
+        removedName = teamANames[idxA] ?? ''
+        teamA[idxA] = OPEN_SLOT_ID
+        teamANames[idxA] = 'Open slot'
+        changed = true
+      }
+      const idxB = teamB.indexOf(targetUid)
+      if (idxB !== -1) {
+        removedName = teamBNames[idxB] ?? ''
+        teamB[idxB] = OPEN_SLOT_ID
+        teamBNames[idxB] = 'Open slot'
+        changed = true
+      }
+      if (!changed) return
+
+      const participantUids = (data.participantUids ?? []).filter((u) => u !== targetUid)
+      const pendingUids = (data.pendingUids ?? []).filter((u) => u !== targetUid)
+      const updates = {
+        teamA,
+        teamB,
+        teamANames,
+        teamBNames,
+        participantUids,
+        pendingUids,
+        hasOpenSlot: true,
+        ...(pendingUids.length ? {} : { status: deleteField() }),
+      }
+      await updateDoc(matchRef, updates)
+
+      const updated = { id: matchId, ...data, ...updates } as Match
+      for (const arr of [this.matches, this.standaloneMatches]) {
+        const idx = arr.findIndex((m) => m.id === matchId)
+        if (idx !== -1) arr[idx] = updated
+      }
+      const openIdx = this.openMatches.findIndex((m) => m.id === matchId)
+      if (openIdx !== -1) this.openMatches[openIdx] = updated
+
+      // Only notify the organizer when someone left on their own — if the
+      // organizer did the removing, they already know.
+      const isSelfLeave = actorUid === targetUid
+      if (isSelfLeave && data.createdBy && data.createdBy !== targetUid) {
+        const label = `${teamANames.join(' & ')} vs ${teamBNames.join(' & ')}`
+        await useNotificationsStore().createMatchRosterNotification(
+          data.createdBy,
+          'match_left',
+          matchId,
+          label,
+          data.scheduledAt ?? Date.now(),
+          removedName || 'A player',
+        )
       }
     },
 

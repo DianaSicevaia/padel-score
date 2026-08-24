@@ -12,6 +12,10 @@ import NotificationsView from '../views/NotificationsView.vue'
 import FindMatchView from '../views/FindMatchView.vue'
 import PlayerProfileView from '../views/PlayerProfileView.vue'
 import ScheduleView from '../views/ScheduleView.vue'
+import TournamentsView from '../views/TournamentsView.vue'
+import CreateTournamentView from '../views/CreateTournamentView.vue'
+import TournamentDetailView from '../views/TournamentDetailView.vue'
+import EditTournamentView from '../views/EditTournamentView.vue'
 import { useAuthStore } from '@/stores/auth'
 import { pinia } from '@/stores'
 
@@ -94,6 +98,30 @@ const router = createRouter({
       path: '/schedule',
       name: 'schedule',
       component: ScheduleView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/tournaments',
+      name: 'tournaments',
+      component: TournamentsView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/tournaments/new',
+      name: 'create-tournament',
+      component: CreateTournamentView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/tournaments/:id',
+      name: 'tournament-detail',
+      component: TournamentDetailView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/tournaments/:id/edit',
+      name: 'edit-tournament',
+      component: EditTournamentView,
       meta: { requiresAuth: true },
     },
   ],

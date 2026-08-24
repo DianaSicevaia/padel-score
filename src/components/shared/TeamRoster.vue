@@ -20,9 +20,14 @@ withDefaults(
     align?: 'start' | 'end'
     avatarSize?: number
     winner?: boolean
+    canKick?: (p: RosterPlayer) => boolean
   }>(),
   { align: 'start', avatarSize: 24 },
 )
+
+const emit = defineEmits<{
+  kick: [p: RosterPlayer]
+}>()
 
 const isGuest = (p: RosterPlayer) => !p.linkUid && !p.isOpen
 const openGuestId = ref<string | null>(null)
@@ -84,6 +89,15 @@ onUnmounted(() => document.removeEventListener('click', closeGuestTooltip))
             :size="avatarSize"
           />
         </component>
+        <button
+          v-if="canKick?.(p)"
+          type="button"
+          class="roster-kick-btn"
+          title="Remove from slot"
+          @click.stop="emit('kick', p)"
+        >
+          ×
+        </button>
       </template>
       <template v-else>
         <component
@@ -114,6 +128,15 @@ onUnmounted(() => document.removeEventListener('click', closeGuestTooltip))
           >
           <span v-if="p.pending" class="roster-player-badge">Invited</span>
         </div>
+        <button
+          v-if="canKick?.(p)"
+          type="button"
+          class="roster-kick-btn"
+          title="Remove from slot"
+          @click.stop="emit('kick', p)"
+        >
+          ×
+        </button>
       </template>
 
       <div v-if="openGuestId === p.id" class="guest-tooltip">Guest profile</div>
@@ -227,5 +250,30 @@ a.roster-player-name:hover {
   text-transform: uppercase;
   letter-spacing: 0.03em;
   width: fit-content;
+}
+
+.roster-kick-btn {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--color-bg-muted);
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.roster-kick-btn:hover {
+  background: var(--color-danger-bg-hover);
+  color: var(--color-danger-text);
 }
 </style>

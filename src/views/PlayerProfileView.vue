@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUsersStore } from '@/stores/users'
-import type { PreferredSide } from '@/stores/users'
+import type { PreferredSide, Gender } from '@/stores/users'
 import { formatNtrp } from '@/utils/ntrp'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import MobileTopBar from '@/components/layout/MobileTopBar.vue'
@@ -47,6 +47,14 @@ const preferredSideText = computed(() => {
   const label = preferredSideLabel(profile.value?.preferredSide)
   return label ? `Preferred side: ${label}` : ''
 })
+
+const genderLabel = (g?: Gender) => {
+  if (g === 'male') return 'Male'
+  if (g === 'female') return 'Female'
+  return ''
+}
+
+const genderText = computed(() => genderLabel(profile.value?.gender))
 
 const memberSince = computed(() => {
   const t = profile.value?.createdAt
@@ -102,6 +110,7 @@ const memberSince = computed(() => {
               <span v-if="globalRatingText" class="profile-rating">{{ globalRatingText }}</span>
               <span class="profile-rating-hint">Based on matches played without a club</span>
               <span v-if="preferredSideText" class="profile-side">{{ preferredSideText }}</span>
+              <span v-if="genderText" class="profile-side">{{ genderText }}</span>
             </div>
           </div>
           <template v-if="isMe">

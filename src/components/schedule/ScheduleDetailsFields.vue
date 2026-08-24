@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import type { MatchFormat, CompetitiveScope } from '@/stores/matches'
+import type { MatchFormat, CompetitiveScope, GenderPreference } from '@/stores/matches'
 import { NTRP_OPTIONS } from '@/utils/ntrp'
 import { CITIES, courtsInCity, courtLabel } from '@/utils/courts'
 
@@ -11,6 +11,7 @@ const rankMin = defineModel<number>('rankMin', { required: true })
 const rankMax = defineModel<number>('rankMax', { required: true })
 const city = defineModel<string>('city', { required: true })
 const court = defineModel<string>('court', { required: true })
+const genderPreference = defineModel<GenderPreference>('genderPreference', { required: true })
 
 const DURATION_OPTIONS = [60, 90, 120]
 
@@ -99,7 +100,36 @@ const onCourtBlur = () => {
       <select v-model.number="rankMax" class="sched-input sched-input--sm">
         <option v-for="n in NTRP_OPTIONS" :key="n" :value="n">{{ n.toFixed(1) }}</option>
       </select>
-      <span class="field-hint field-hint--inline">NTRP — shown on the listing, not enforced yet.</span>
+      <span class="field-hint field-hint--inline"
+        >NTRP — shown on the listing, not enforced yet.</span
+      >
+    </div>
+  </div>
+
+  <div class="form-section">
+    <label class="field-label">Who's welcome</label>
+    <div class="tab-row">
+      <button
+        type="button"
+        :class="['tab', { 'tab--active': genderPreference === 'neutral' }]"
+        @click="genderPreference = 'neutral'"
+      >
+        Neutral
+      </button>
+      <button
+        type="button"
+        :class="['tab', { 'tab--active': genderPreference === 'men' }]"
+        @click="genderPreference = 'men'"
+      >
+        Guys only
+      </button>
+      <button
+        type="button"
+        :class="['tab', { 'tab--active': genderPreference === 'women' }]"
+        @click="genderPreference = 'women'"
+      >
+        Girls only
+      </button>
     </div>
   </div>
 
@@ -150,13 +180,6 @@ const onCourtBlur = () => {
   color: var(--color-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-}
-
-.field-hint {
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  color: var(--color-text-muted);
-  margin: 0;
 }
 
 .field-hint--inline {

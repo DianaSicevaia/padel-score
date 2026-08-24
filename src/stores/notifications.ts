@@ -16,8 +16,15 @@ import type { Unsubscribe } from 'firebase/firestore'
 import { db } from '@/firebase'
 import { useClubsStore } from '@/stores/clubs'
 
-export type NotificationType = 'club_invite' | 'match_invite'
-export type NotificationStatus = 'pending' | 'accepted' | 'declined'
+export type NotificationType =
+  | 'club_invite'
+  | 'match_invite'
+  | 'match_joined'
+  | 'match_left'
+  | 'tournament_invite'
+// 'info' is for notices that don't need a response (match_joined/match_left)
+// unlike 'pending', they're excluded from the unread/action-needed badge.
+export type NotificationStatus = 'pending' | 'accepted' | 'declined' | 'info'
 
 export interface AppNotification {
   id: string
@@ -28,9 +35,11 @@ export interface AppNotification {
   clubName: string
   matchId?: string
   matchLabel?: string
+  tournamentId?: string
   scheduledAt?: number
   createdAt: number
   respondedAt?: number
+  actorName?: string
 }
 
 interface NotificationsState {
@@ -100,6 +109,53 @@ export const useNotificationsStore = defineStore('notifications', {
       )
     },
 
+    async createTournamentInviteNotifications(
+      uids: string[],
+      tournamentId: string,
+      tournamentName: string,
+      scheduledAt: number,
+    ) {
+      await Promise.all(
+        uids.map((uid) => {
+          const data: Omit<AppNotification, 'id'> = {
+            uid,
+            type: 'tournament_invite',
+            status: 'pending',
+            clubName: '',
+            tournamentId,
+            matchLabel: tournamentName,
+            scheduledAt,
+            createdAt: Date.now(),
+          }
+          return addDoc(collection(db, 'notifications'), data)
+        }),
+      )
+    },
+
+    // Informational notice for the match organizer - someone joined or left
+    // an open slot on their match. No accept/decline; nothing to respond to.
+    async createMatchRosterNotification(
+      uid: string,
+      type: 'match_joined' | 'match_left',
+      matchId: string,
+      matchLabel: string,
+      scheduledAt: number,
+      actorName: string,
+    ) {
+      const data: Omit<AppNotification, 'id'> = {
+        uid,
+        type,
+        status: 'info',
+        clubName: '',
+        matchId,
+        matchLabel,
+        scheduledAt,
+        actorName,
+        createdAt: Date.now(),
+      }
+      await addDoc(collection(db, 'notifications'), data)
+    },
+
     async acceptNotification(n: AppNotification) {
       if (n.type === 'club_invite' && n.clubId) {
         const q = query(
@@ -127,6 +183,19 @@ export const useNotificationsStore = defineStore('notifications', {
           }
         } catch {
           /* match no longer exists */
+        }
+      } else if (n.type === 'tournament_invite' && n.tournamentId) {
+        try {
+          const tournamentRef = doc(db, 'tournaments', n.tournamentId)
+          const snap = await getDoc(tournamentRef)
+          if (snap.exists()) {
+            const data = snap.data() as { pendingUids?: string[]; participantUids?: string[] }
+            const pendingUids = (data.pendingUids ?? []).filter((u) => u !== n.uid)
+            const participantUids = Array.from(new Set([...(data.participantUids ?? []), n.uid]))
+            await updateDoc(tournamentRef, { pendingUids, participantUids })
+          }
+        } catch {
+          /* tournament no longer exists */
         }
       }
       await this.setNotificationStatus(n.id, 'accepted')
@@ -191,6 +260,18 @@ export const useNotificationsStore = defineStore('notifications', {
           }
         } catch {
           /* match no longer exists */
+        }
+      } else if (n.type === 'tournament_invite' && n.tournamentId) {
+        try {
+          const tournamentRef = doc(db, 'tournaments', n.tournamentId)
+          const snap = await getDoc(tournamentRef)
+          if (snap.exists()) {
+            const data = snap.data() as { pendingUids?: string[] }
+            const pendingUids = (data.pendingUids ?? []).filter((u) => u !== n.uid)
+            await updateDoc(tournamentRef, { pendingUids })
+          }
+        } catch {
+          /* tournament no longer exists */
         }
       }
       await this.setNotificationStatus(n.id, 'declined')
