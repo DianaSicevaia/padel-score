@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUsersStore } from '@/stores/users'
-import type { PreferredSide } from '@/stores/users'
+import type { PreferredSide, Gender } from '@/stores/users'
 import { AVATAR_BACKGROUNDS } from '@/utils/avatarBackgrounds'
 import { NTRP_OPTIONS, formatNtrp, ntrpToRating } from '@/utils/ntrp'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
@@ -48,6 +48,14 @@ const preferredSideText = computed(() => {
   return label ? `Preferred side: ${label}` : ''
 })
 
+const genderLabel = (g?: Gender) => {
+  if (g === 'male') return 'Male'
+  if (g === 'female') return 'Female'
+  return ''
+}
+
+const genderText = computed(() => genderLabel(globalProfile.value?.gender))
+
 const displayName = computed(() => {
   if (!user.value) return 'Player'
   return user.value.displayName || user.value.email?.split('@')[0] || 'Player'
@@ -69,6 +77,7 @@ const isEditing = ref(false)
 const editName = ref('')
 const editPreferredSide = ref<PreferredSide | null>(null)
 const editAvatarBackground = ref<string | null>(null)
+const editGender = ref<Gender | null>(null)
 const saving = ref(false)
 const saveError = ref('')
 
@@ -76,6 +85,7 @@ const startEdit = () => {
   editName.value = displayName.value
   editPreferredSide.value = globalProfile.value?.preferredSide ?? null
   editAvatarBackground.value = globalProfile.value?.avatarBackground ?? null
+  editGender.value = globalProfile.value?.gender ?? null
   saveError.value = ''
   isEditing.value = true
 }
@@ -97,6 +107,7 @@ const saveProfile = async () => {
       authStore.updateUserProfile({ displayName: editName.value.trim() }),
       usersStore.updatePreferredSide(authStore.user.uid, editPreferredSide.value),
       usersStore.updateAvatarBackground(authStore.user.uid, editAvatarBackground.value),
+      usersStore.updateGender(authStore.user.uid, editGender.value),
     ])
     // usersStore.allUsers (and so globalProfile) updates live once the write lands.
     isEditing.value = false
@@ -224,6 +235,7 @@ const saveNtrp = async () => {
                 >Based on matches played without a club</span
               >
               <span v-if="preferredSideText" class="profile-side">{{ preferredSideText }}</span>
+              <span v-if="genderText" class="profile-side">{{ genderText }}</span>
             </div>
           </div>
 
@@ -283,6 +295,31 @@ const saveNtrp = async () => {
                   @click="editPreferredSide = null"
                 >
                   No preference
+                </button>
+              </div>
+
+              <label class="field-label field-label--spaced">Gender</label>
+              <div class="side-toggle">
+                <button
+                  type="button"
+                  :class="['side-tab', { 'side-tab--active': editGender === 'male' }]"
+                  @click="editGender = 'male'"
+                >
+                  Male
+                </button>
+                <button
+                  type="button"
+                  :class="['side-tab', { 'side-tab--active': editGender === 'female' }]"
+                  @click="editGender = 'female'"
+                >
+                  Female
+                </button>
+                <button
+                  type="button"
+                  :class="['side-tab', { 'side-tab--active': editGender === null }]"
+                  @click="editGender = null"
+                >
+                  Not specified
                 </button>
               </div>
 

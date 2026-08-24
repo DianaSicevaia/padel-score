@@ -5,6 +5,7 @@ import type { Unsubscribe } from 'firebase/firestore'
 import { db } from '@/firebase'
 
 export type PreferredSide = 'left' | 'right'
+export type Gender = 'male' | 'female'
 
 export interface UserProfile {
   uid: string
@@ -18,6 +19,7 @@ export interface UserProfile {
   createdAt: number
   preferredSide?: PreferredSide
   avatarBackground?: string
+  gender?: Gender
 }
 
 interface RawUserData {
@@ -31,6 +33,7 @@ interface RawUserData {
   createdAt?: number
   preferredSide?: PreferredSide | null
   avatarBackground?: string | null
+  gender?: Gender | null
 }
 
 export const START_RATING = 1000
@@ -48,6 +51,7 @@ function normalizeUser(uid: string, data: RawUserData): UserProfile {
     createdAt: data.createdAt ?? 0,
     preferredSide: data.preferredSide ?? undefined,
     avatarBackground: data.avatarBackground ?? undefined,
+    gender: data.gender ?? undefined,
   }
 }
 
@@ -137,6 +141,12 @@ export const useUsersStore = defineStore('users', {
       const idx = this.allUsers.findIndex((u) => u.uid === uid)
       if (idx !== -1)
         this.allUsers[idx] = { ...this.allUsers[idx]!, preferredSide: side ?? undefined }
+    },
+
+    async updateGender(uid: string, gender: Gender | null) {
+      await setDoc(doc(db, 'users', uid), { gender }, { merge: true })
+      const idx = this.allUsers.findIndex((u) => u.uid === uid)
+      if (idx !== -1) this.allUsers[idx] = { ...this.allUsers[idx]!, gender: gender ?? undefined }
     },
 
     // Lets a user pick one of the fixed court-texture backgrounds for when

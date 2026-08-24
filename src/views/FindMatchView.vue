@@ -122,8 +122,12 @@ const join = async (match: Match, side: 'A' | 'B') => {
               <div class="match-meta">
                 <div class="match-meta-info">
                   <span class="match-date">{{ formatDate(match.scheduledAt!) }}</span>
-                  <span v-if="matchFormatLabel(match)" class="match-format-badge">{{ matchFormatLabel(match) }}</span>
-                  <span v-if="matchLocationLabel(match)" class="match-location">{{ matchLocationLabel(match) }}</span>
+                  <span v-if="matchFormatLabel(match)" class="match-format-badge">{{
+                    matchFormatLabel(match)
+                  }}</span>
+                  <span v-if="matchLocationLabel(match)" class="match-location">{{
+                    matchLocationLabel(match)
+                  }}</span>
                 </div>
                 <div class="join-actions">
                   <button

@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useMatchesStore, buildScheduleDetails } from '@/stores/matches'
-import type { StandaloneParticipant, MatchFormat, CompetitiveScope } from '@/stores/matches'
+import type {
+  StandaloneParticipant,
+  MatchFormat,
+  CompetitiveScope,
+  GenderPreference,
+} from '@/stores/matches'
 import { useAuthStore } from '@/stores/auth'
 import { CITIES } from '@/utils/courts'
 import PlayerPicker from '@/components/quickmatch/PlayerPicker.vue'
@@ -32,6 +37,7 @@ const rankMin = ref(3.0)
 const rankMax = ref(4.0)
 const city = ref(CITIES[0]!)
 const court = ref('')
+const genderPreference = ref<GenderPreference>('neutral')
 
 const matchError = ref('')
 const submitting = ref(false)
@@ -99,6 +105,7 @@ const submit = async () => {
     rankMax: rankMax.value,
     city: city.value,
     court: court.value,
+    genderPreference: genderPreference.value,
   })
 
   submitting.value = true
@@ -166,6 +173,7 @@ const submit = async () => {
       v-model:rank-max="rankMax"
       v-model:city="city"
       v-model:court="court"
+      v-model:gender-preference="genderPreference"
     />
 
     <div class="match-form-footer">

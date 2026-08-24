@@ -225,6 +225,31 @@ const myAvatarBackground = computed(
       </a>
       <a
         class="sb-nav-item"
+        :class="{ 'sb-nav-item--active': route.path.startsWith('/tournaments') }"
+        @click="router.push('/tournaments')"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M8 21h8" />
+          <path d="M12 17v4" />
+          <path d="M7 4h10" />
+          <path d="M17 4v5a5 5 0 0 1-10 0V4" />
+          <path d="M7 4H4.5a2.5 2.5 0 0 0 0 5H7" />
+          <path d="M17 4h2.5a2.5 2.5 0 0 1 0 5H17" />
+        </svg>
+        Tournaments
+      </a>
+      <a
+        class="sb-nav-item"
         :class="{ 'sb-nav-item--active': route.path === '/settings' }"
         @click="router.push('/settings')"
       >

@@ -16,12 +16,13 @@ const sorted = computed(() =>
   [...notificationsStore.notifications].sort((a, b) => b.createdAt - a.createdAt),
 )
 
-const title = (n: AppNotification) =>
-  n.type === 'club_invite'
-    ? `Invited to join ${n.clubName}`
-    : n.clubId
-      ? `Match invite in ${n.clubName}`
-      : 'Match invite'
+const title = (n: AppNotification) => {
+  if (n.type === 'club_invite') return `Invited to join ${n.clubName}`
+  if (n.type === 'match_joined') return `${n.actorName ?? 'Someone'} joined your match`
+  if (n.type === 'match_left') return `${n.actorName ?? 'A player'} left your match`
+  if (n.type === 'tournament_invite') return `Invited to join ${n.matchLabel ?? 'a tournament'}`
+  return n.clubId ? `Match invite in ${n.clubName}` : 'Match invite'
+}
 
 const formatDate = (ts: number) =>
   new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
@@ -69,7 +70,13 @@ const decline = async (n: AppNotification) => {
           <template v-for="(n, i) in sorted" :key="n.id">
             <div v-if="i > 0" class="panel-divider"></div>
             <div class="notif-row">
-              <div class="notif-icon" :class="{ 'notif-icon--match': n.type === 'match_invite' }">
+              <div
+                class="notif-icon"
+                :class="{
+                  'notif-icon--match':
+                    n.type === 'match_invite' || n.type === 'match_joined' || n.type === 'match_left',
+                }"
+              >
                 <svg
                   v-if="n.type === 'club_invite'"
                   width="16"
@@ -107,7 +114,9 @@ const decline = async (n: AppNotification) => {
               </div>
               <div class="notif-info">
                 <span class="notif-title">{{ title(n) }}</span>
-                <span v-if="n.matchLabel" class="notif-sub">{{ n.matchLabel }}</span>
+                <span v-if="n.matchLabel && n.type !== 'tournament_invite'" class="notif-sub">{{
+                  n.matchLabel
+                }}</span>
                 <span class="notif-date">{{ formatDate(n.scheduledAt ?? n.createdAt) }}</span>
               </div>
               <div v-if="n.status === 'pending'" class="notif-actions">
@@ -118,9 +127,12 @@ const decline = async (n: AppNotification) => {
                   Decline
                 </button>
               </div>
-              <span v-else class="status-pill" :class="`status-pill--${n.status}`">{{
-                n.status
-              }}</span>
+              <span
+                v-else-if="n.status !== 'info'"
+                class="status-pill"
+                :class="`status-pill--${n.status}`"
+                >{{ n.status }}</span
+              >
             </div>
           </template>
         </div>
