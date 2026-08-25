@@ -22,10 +22,21 @@ const tournamentId = computed(() => route.params.id as string)
 const tournament = computed(() =>
   tournamentsStore.tournaments.find((t) => t.id === tournamentId.value),
 )
+// For a club tournament, edit rights belong to owner and managers.
+const isManager = computed(() => {
+  if (!tournament.value || !authStore.user) return false
+  if (tournament.value.clubId) {
+    const club = clubsStore.clubs.find((c) => c.id === tournament.value!.clubId)
+    return (
+      !!club && (club.ownerId === authStore.user.uid || club.adminIds.includes(authStore.user.uid))
+    )
+  }
+  return tournament.value.createdBy === authStore.user.uid
+})
 const canEdit = computed(
   () =>
     !!tournament.value &&
-    tournament.value.createdBy === authStore.user?.uid &&
+    isManager.value &&
     (tournament.value.status === 'draft' || tournament.value.status === 'upcoming'),
 )
 const myClubPlayer = computed(() => {

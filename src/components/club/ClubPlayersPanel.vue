@@ -9,12 +9,21 @@ const props = defineProps<{
   clubId: string
   currentUid: string | null
   myPlayer: Player | null
+  // canManage = owner or a delegated manager: gates day-to-day roster edits.
+  canManage: boolean
   isOwner: boolean
+  ownerId: string
+  adminIds: string[]
 }>()
 
 const playersStore = usePlayersStore()
 const clubsStore = useClubsStore()
 const authStore = useAuthStore()
+
+const toggleAdmin = async (uid: string, makeAdmin: boolean) => {
+  if (!props.isOwner) return
+  await clubsStore.setClubAdmin(props.clubId, uid, makeAdmin)
+}
 
 const playerInitial = (p: Player) => p.name[0]?.toUpperCase() ?? '?'
 const playerStats = (p: Player): string => {
@@ -41,7 +50,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleMenuOutsideCli
 
 // ── Add self ───────────────────────────────────────
 const addSelf = async () => {
-  if (!props.isOwner || !authStore.user || props.myPlayer) return
+  if (!props.canManage || !authStore.user || props.myPlayer) return
   const name = authStore.user.displayName || authStore.user.email?.split('@')[0] || 'Me'
   try {
     await playersStore.createPlayer(props.clubId, name, authStore.user.uid)
@@ -57,7 +66,7 @@ const addError = ref('')
 const adding = ref(false)
 
 const openAdd = () => {
-  if (!props.isOwner) return
+  if (!props.canManage) return
   showSelectPicker.value = false
   showEmailForm.value = false
   newPlayerName.value = ''
@@ -71,7 +80,7 @@ const cancelAdd = () => {
 }
 
 const submitAdd = async () => {
-  if (!props.isOwner) return
+  if (!props.canManage) return
   if (!newPlayerName.value.trim()) {
     addError.value = 'Please enter a player name.'
     return
@@ -96,7 +105,7 @@ const inviteError = ref('')
 const inviting = ref(false)
 
 const openEmailForm = () => {
-  if (!props.isOwner) return
+  if (!props.canManage) return
   showAddForm.value = false
   showSelectPicker.value = false
   cancelEdit()
@@ -112,7 +121,7 @@ const closeEmailForm = () => {
 }
 
 const submitEmailInvite = async () => {
-  if (!props.isOwner) return
+  if (!props.canManage) return
   if (!inviteEmail.value.trim()) {
     inviteError.value = 'Enter an email address.'
     return
@@ -155,7 +164,7 @@ const isAlreadyAdded = (p: Player) => currentPlayerNames.value.has(p.name.toLowe
 const clubName = (cid: string) => clubsStore.clubs.find((c) => c.id === cid)?.name ?? 'Other Club'
 
 const openSelectPicker = async () => {
-  if (!props.isOwner) return
+  if (!props.canManage) return
   showAddForm.value = false
   showEmailForm.value = false
   cancelEdit()
@@ -170,7 +179,7 @@ const openSelectPicker = async () => {
 }
 
 const handleSelectPlayer = async (p: Player) => {
-  if (!props.isOwner) return
+  if (!props.canManage) return
   await playersStore.createPlayer(props.clubId, p.name)
   showSelectPicker.value = false
 }
@@ -180,7 +189,7 @@ const editingId = ref<string | null>(null)
 const editName = ref('')
 
 const startEdit = (p: Player) => {
-  if (!props.isOwner) return
+  if (!props.canManage) return
   editingId.value = p.id
   editName.value = p.name
 }
@@ -191,7 +200,7 @@ const cancelEdit = () => {
 }
 
 const submitEdit = async (p: Player) => {
-  if (!props.isOwner) return
+  if (!props.canManage) return
   if (!editName.value.trim()) {
     cancelEdit()
     return
@@ -208,7 +217,7 @@ const submitEdit = async (p: Player) => {
 const deletingId = ref<string | null>(null)
 
 const handleDelete = async (p: Player) => {
-  if (!props.isOwner) return
+  if (!props.canManage) return
   if (!confirm(`Remove "${p.name}" from this club?`)) return
   deletingId.value = p.id
   try {
@@ -227,7 +236,7 @@ const handleDelete = async (p: Player) => {
     <div class="panel-hdr">
       <span class="panel-title">Players</span>
       <span class="count-badge">{{ playersStore.players.length }}</span>
-      <div v-if="isOwner" class="hdr-actions">
+      <div v-if="canManage" class="hdr-actions">
         <button v-if="!myPlayer" class="btn-outline" @click="addSelf">
           <svg
             width="16"
@@ -449,10 +458,28 @@ const handleDelete = async (p: Player) => {
               </svg>
             </span>
             <span v-if="player.status === 'requested'" class="requested-badge">requested</span>
+            <span v-if="player.uid === ownerId" class="owner-badge">Owner</span>
+            <template v-else-if="player.uid">
+              <button
+                v-if="isOwner"
+                type="button"
+                class="manager-toggle-badge"
+                :class="{ 'manager-toggle-badge--active': adminIds.includes(player.uid) }"
+                :title="
+                  adminIds.includes(player.uid)
+                    ? 'Remove manager rights'
+                    : 'Give manager rights (matches, tournaments, players)'
+                "
+                @click="toggleAdmin(player.uid, !adminIds.includes(player.uid))"
+              >
+                {{ adminIds.includes(player.uid) ? 'Manager' : 'Make manager' }}
+              </button>
+              <span v-else-if="adminIds.includes(player.uid)" class="manager-badge">Manager</span>
+            </template>
           </div>
           <span v-if="playerStats(player)" class="player-stats">{{ playerStats(player) }}</span>
         </div>
-        <div v-if="isOwner" class="player-actions">
+        <div v-if="canManage" class="player-actions">
           <button class="btn-icon" title="Edit player" @click="startEdit(player)">
             <svg
               width="15"
@@ -564,12 +591,12 @@ const handleDelete = async (p: Player) => {
       <h2 class="empty-title">No players yet</h2>
       <p class="empty-desc">
         {{
-          isOwner
+          canManage
             ? 'Add players to start building your club roster.'
             : 'The club owner hasn’t added any players yet.'
         }}
       </p>
-      <button v-if="isOwner" class="btn-primary" @click="openAdd">
+      <button v-if="canManage" class="btn-primary" @click="openAdd">
         <svg
           width="16"
           height="16"
@@ -734,6 +761,65 @@ const handleDelete = async (p: Player) => {
   padding: 1px 5px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+.owner-badge {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-primary);
+  background: var(--color-accent-bg);
+  border-radius: 4px;
+  padding: 1px 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.manager-badge {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+  border-radius: 4px;
+  padding: 1px 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.manager-toggle-badge {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-bg-muted);
+  border: none;
+  border-radius: 4px;
+  padding: 2px 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.manager-toggle-badge:hover {
+  background: var(--color-border);
+  color: var(--color-text);
+}
+
+.manager-toggle-badge--active {
+  color: var(--color-accent);
+  background: var(--color-accent-bg);
+}
+
+.manager-toggle-badge--active:hover {
+  background: var(--color-danger-bg-hover);
+  color: var(--color-danger-text);
 }
 
 .player-stats {

@@ -31,10 +31,13 @@ const myPlayer = computed(() =>
 const clubId = computed(() => route.params.id as string)
 const club = computed(() => clubsStore.clubs.find((c) => c.id === clubId.value))
 const isLoading = computed(() => clubsStore.loading || playersStore.loading || matchesStore.loading)
-// Only the club owner may add/edit players and create/edit/cancel matches —
-// everyone else has read-only access to the roster and match history.
+// The owner always has full rights.
 const isOwner = computed(() => !!club.value && club.value.ownerId === currentUid.value)
-const canCreateMatch = computed(() => isOwner.value && playersStore.players.length >= 2)
+const isAdmin = computed(
+  () => !!club.value && !!currentUid.value && club.value.adminIds.includes(currentUid.value),
+)
+const canManage = computed(() => isOwner.value || isAdmin.value)
+const canCreateMatch = computed(() => canManage.value && playersStore.players.length >= 2)
 
 const formatDate = (ts: number) =>
   new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -110,7 +113,7 @@ const tournamentStatusLabel = (status: string) =>
   })[status] ?? status
 const goCreateTournament = () => router.push(`/tournaments/new?clubId=${clubId.value}`)
 const openTournament = (id: string) => router.push(`/tournaments/${id}`)
-const canCreateTournament = computed(() => isOwner.value && playersStore.players.length >= 4)
+const canCreateTournament = computed(() => canManage.value && playersStore.players.length >= 4)
 
 // ── Bootstrap ──────────────────────────────────────
 let unsubPlayers: (() => void) | null = null
@@ -126,12 +129,12 @@ onMounted(async () => {
   }
 
   if (route.query.newMatch === '1') {
-    if (isOwner.value) openMatchForm()
+    if (canManage.value) openMatchForm()
     router.replace({ params: route.params, query: {} })
   }
   if (route.query.playNow) {
     const matchId = route.query.playNow as string
-    if (isOwner.value) {
+    if (canManage.value) {
       const m = await matchesStore.fetchMatchById(matchId)
       if (m) await handlePlayNow(m)
     }
@@ -209,7 +212,8 @@ onUnmounted(() => {
                 <div>
                   <h1 class="page-title">{{ club.name }}</h1>
                   <p class="page-subtitle">
-                    {{ isOwner ? 'Owner' : 'Member' }} · Created {{ formatDate(club.createdAt) }}
+                    {{ isOwner ? 'Owner' : isAdmin ? 'Manager' : 'Member' }} · Created
+                    {{ formatDate(club.createdAt) }}
                   </p>
                 </div>
               </div>
@@ -221,7 +225,10 @@ onUnmounted(() => {
             :clubId="clubId"
             :currentUid="currentUid"
             :myPlayer="myPlayer"
+            :canManage="canManage"
             :isOwner="isOwner"
+            :ownerId="club.ownerId"
+            :adminIds="club.adminIds"
           />
 
           <!-- Matches panel -->
@@ -230,7 +237,7 @@ onUnmounted(() => {
               <span class="panel-title">Matches</span>
               <span class="count-badge">{{ completedMatches.length }}</span>
               <button
-                v-if="isOwner"
+                v-if="canManage"
                 class="btn-sm-primary panel-hdr-btn"
                 :disabled="
                   (!canCreateMatch && !formEditingMatch) || (showMatchForm && !formEditingMatch)
@@ -247,7 +254,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Match form -->
-            <template v-if="isOwner && showMatchForm">
+            <template v-if="canManage && showMatchForm">
               <div class="panel-divider"></div>
               <MatchForm
                 :clubId="clubId"
@@ -290,7 +297,7 @@ onUnmounted(() => {
                   :match="match"
                   :players="playersStore.players"
                   :currentUid="currentUid"
-                  :isOwner="isOwner"
+                  :canManage="canManage"
                   @play-now="handlePlayNow"
                   @cancel-match="handleCancelSchedule"
                 />
@@ -307,7 +314,7 @@ onUnmounted(() => {
                 :isDeleting="deletingMatchId === match.id"
                 :isEditing="formEditingMatch?.id === match.id"
                 :players="playersStore.players"
-                :isOwner="isOwner"
+                :canManage="canManage"
                 @edit="openMatchForm"
                 @delete="handleDeleteMatch"
               />
@@ -326,7 +333,7 @@ onUnmounted(() => {
               <span class="panel-title">Tournaments</span>
               <span class="count-badge">{{ clubTournaments.length }}</span>
               <button
-                v-if="isOwner"
+                v-if="canManage"
                 class="btn-sm-primary panel-hdr-btn"
                 :disabled="!canCreateTournament"
                 :title="

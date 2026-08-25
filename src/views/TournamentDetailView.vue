@@ -40,9 +40,16 @@ const tournament = computed(() =>
 )
 
 const currentUid = computed(() => authStore.user?.uid ?? null)
-const isOrganizer = computed(
-  () => !!tournament.value && !!currentUid.value && tournament.value.createdBy === currentUid.value,
-)
+// For a club tournament, edit rights belong to owner and managers.
+// Standalone tournaments still belong only to whoever created them.
+const isOrganizer = computed(() => {
+  if (!tournament.value || !currentUid.value) return false
+  if (tournament.value.clubId) {
+    const club = clubsStore.clubs.find((c) => c.id === tournament.value!.clubId)
+    return !!club && (club.ownerId === currentUid.value || club.adminIds.includes(currentUid.value))
+  }
+  return tournament.value.createdBy === currentUid.value
+})
 const isParticipant = computed(
   () =>
     !!tournament.value &&
