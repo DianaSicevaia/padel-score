@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useTournamentsStore } from '@/stores/tournaments'
 import type { Tournament } from '@/stores/tournaments'
 import { useAuthStore } from '@/stores/auth'
+import { useClubsStore } from '@/stores/clubs'
 import { courtLabel } from '@/utils/courts'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import MobileTopBar from '@/components/layout/MobileTopBar.vue'
@@ -12,11 +13,17 @@ import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
 const router = useRouter()
 const authStore = useAuthStore()
 const tournamentsStore = useTournamentsStore()
+const clubsStore = useClubsStore()
 const mobileMenuOpen = ref(false)
 
 let unsub: (() => void) | null = null
 onMounted(() => {
-  if (authStore.user) unsub = tournamentsStore.subscribeTournaments(authStore.user.uid)
+  if (authStore.user) {
+    unsub = tournamentsStore.subscribeTournaments(
+      authStore.user.uid,
+      clubsStore.clubs.map((c) => c.id),
+    )
+  }
 })
 onUnmounted(() => unsub?.())
 

@@ -20,6 +20,8 @@ import { useUsersStore, START_RATING as USER_START_RATING } from '@/stores/users
 import { useAuthStore } from '@/stores/auth'
 import { useClubsStore } from '@/stores/clubs'
 import { useNotificationsStore } from '@/stores/notifications'
+import { ELO_K, ELO_START_RATING, expectedScore, outcomeActual } from '@/utils/elo'
+import type { MatchOutcome } from '@/utils/elo'
 
 export interface MatchPlayerSnapshot {
   playerId: string
@@ -50,7 +52,7 @@ export type CompetitiveScope = 'ranked' | 'open'
 
 // Same as competitiveScope: a label for who the organizer is hoping to play
 // with, not an enforced join filter.
-export type GenderPreference = 'neutral' | 'men' | 'women'
+export type GenderPreference = 'mixed' | 'men' | 'women'
 
 export interface ScheduleDetails {
   durationMinutes?: number
@@ -73,7 +75,7 @@ export interface Match extends ScheduleDetails {
   sets?: MatchSet[]
   scoreA: number
   scoreB: number
-  winnerTeam?: 'A' | 'B'
+  winnerTeam?: 'A' | 'B' | 'draw'
   scheduledAt?: number
   createdAt: number
   before?: MatchPlayerSnapshot[]
@@ -95,23 +97,30 @@ interface MatchesState {
   openLoading: boolean
 }
 
-const K = 32
-const START_RATING = 1000
+const START_RATING = ELO_START_RATING
 
-function expectedScore(myAvg: number, oppAvg: number): number {
-  return 1 / (1 + Math.pow(10, (oppAvg - myAvg) / 400))
-}
-
-function computeEloUpdates(players: Player[], myAvg: number, oppAvg: number, won: boolean) {
+// Draws don't move wins/losses, only matchesPlayed and rating (see
+// utils/elo.ts for the actual formula, shared with tournament scoring).
+function computeEloUpdates(
+  players: Player[],
+  myAvg: number,
+  oppAvg: number,
+  outcome: MatchOutcome,
+) {
   const exp = expectedScore(myAvg, oppAvg)
-  const actual = won ? 1 : 0
+  const actual = outcomeActual(outcome)
   return players.map((p) => ({
     id: p.id,
-    rating: Math.max(100, Math.round((p.rating || START_RATING) + K * (actual - exp))),
+    rating: Math.max(100, Math.round((p.rating || START_RATING) + ELO_K * (actual - exp))),
     matchesPlayed: p.matchesPlayed + 1,
-    wins: p.wins + (won ? 1 : 0),
-    losses: p.losses + (won ? 0 : 1),
+    wins: p.wins + (outcome === 'win' ? 1 : 0),
+    losses: p.losses + (outcome === 'loss' ? 1 : 0),
   }))
+}
+
+function outcomeForSide(winnerTeam: 'A' | 'B' | 'draw', side: 'A' | 'B'): MatchOutcome {
+  if (winnerTeam === 'draw') return 'draw'
+  return winnerTeam === side ? 'win' : 'loss'
 }
 
 function snapshotPlayers(players: Player[]): MatchPlayerSnapshot[] {
@@ -151,7 +160,7 @@ export function buildScheduleDetails(input: {
     ...(isRanked ? { rankMin: input.rankMin, rankMax: input.rankMax } : {}),
     ...(input.city ? { city: input.city } : {}),
     ...(input.court ? { court: input.court } : {}),
-    ...(input.genderPreference !== 'neutral' ? { genderPreference: input.genderPreference } : {}),
+    ...(input.genderPreference !== 'mixed' ? { genderPreference: input.genderPreference } : {}),
   })
 }
 
@@ -239,7 +248,7 @@ export const useMatchesStore = defineStore('matches', {
       teamB: StandaloneParticipant[],
       sets: MatchSet[],
       creatorUid: string,
-      winnerOverride?: 'A' | 'B',
+      winnerOverride?: 'A' | 'B' | 'draw',
       matchFormat?: MatchFormat,
     ) {
       const isFriendly = matchFormat === 'friendly'
@@ -265,7 +274,7 @@ export const useMatchesStore = defineStore('matches', {
       const avgB = avgRating(teamB)
       const scoreA = sets.filter((s) => s.scoreA > s.scoreB).length
       const scoreB = sets.filter((s) => s.scoreB > s.scoreA).length
-      const winnerTeam: 'A' | 'B' = winnerOverride ?? (scoreA > scoreB ? 'A' : 'B')
+      const winnerTeam: 'A' | 'B' | 'draw' = winnerOverride ?? (scoreA > scoreB ? 'A' : 'B')
 
       const toPseudoPlayer = (p: StandaloneParticipant): Player => {
         const profile = p.uid ? userProfiles.find((u) => u.uid === p.uid) : undefined
@@ -289,8 +298,8 @@ export const useMatchesStore = defineStore('matches', {
       const statsUpdates = isFriendly
         ? []
         : [
-            ...computeEloUpdates(registeredA, avgA, avgB, winnerTeam === 'A'),
-            ...computeEloUpdates(registeredB, avgB, avgA, winnerTeam === 'B'),
+            ...computeEloUpdates(registeredA, avgA, avgB, outcomeForSide(winnerTeam, 'A')),
+            ...computeEloUpdates(registeredB, avgB, avgA, outcomeForSide(winnerTeam, 'B')),
           ]
 
       const before: MatchPlayerSnapshot[] = isFriendly
@@ -338,7 +347,7 @@ export const useMatchesStore = defineStore('matches', {
       teamA: string[],
       teamB: string[],
       sets: MatchSet[],
-      winnerOverride?: 'A' | 'B',
+      winnerOverride?: 'A' | 'B' | 'draw',
       matchFormat?: MatchFormat,
     ) {
       const isFriendly = matchFormat === 'friendly'
@@ -358,15 +367,15 @@ export const useMatchesStore = defineStore('matches', {
       const avgB = avgRating(playersB)
       const scoreA = sets.filter((s) => s.scoreA > s.scoreB).length
       const scoreB = sets.filter((s) => s.scoreB > s.scoreA).length
-      const winnerTeam: 'A' | 'B' = winnerOverride ?? (scoreA > scoreB ? 'A' : 'B')
+      const winnerTeam: 'A' | 'B' | 'draw' = winnerOverride ?? (scoreA > scoreB ? 'A' : 'B')
 
       // Friendly matches are recorded (for history) but never touch anyone's
       // rating or W/L record.
       const statsUpdates = isFriendly
         ? []
         : [
-            ...computeEloUpdates(playersA, avgA, avgB, winnerTeam === 'A'),
-            ...computeEloUpdates(playersB, avgB, avgA, winnerTeam === 'B'),
+            ...computeEloUpdates(playersA, avgA, avgB, outcomeForSide(winnerTeam, 'A')),
+            ...computeEloUpdates(playersB, avgB, avgA, outcomeForSide(winnerTeam, 'B')),
           ]
 
       const participantUids = Array.from(
@@ -415,7 +424,7 @@ export const useMatchesStore = defineStore('matches', {
       teamA: string[],
       teamB: string[],
       sets: MatchSet[],
-      winnerOverride?: 'A' | 'B',
+      winnerOverride?: 'A' | 'B' | 'draw',
     ) {
       const match = this.matches.find((m) => m.id === matchId)
       if (!match) return
@@ -441,11 +450,11 @@ export const useMatchesStore = defineStore('matches', {
       const avgB = avgRating(playersB)
       const scoreA = sets.filter((s) => s.scoreA > s.scoreB).length
       const scoreB = sets.filter((s) => s.scoreB > s.scoreA).length
-      const winnerTeam: 'A' | 'B' = winnerOverride ?? (scoreA > scoreB ? 'A' : 'B')
+      const winnerTeam: 'A' | 'B' | 'draw' = winnerOverride ?? (scoreA > scoreB ? 'A' : 'B')
 
       const statsUpdates = [
-        ...computeEloUpdates(playersA, avgA, avgB, winnerTeam === 'A'),
-        ...computeEloUpdates(playersB, avgB, avgA, winnerTeam === 'B'),
+        ...computeEloUpdates(playersA, avgA, avgB, outcomeForSide(winnerTeam, 'A')),
+        ...computeEloUpdates(playersB, avgB, avgA, outcomeForSide(winnerTeam, 'B')),
       ]
 
       const participantUids = Array.from(

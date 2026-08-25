@@ -60,6 +60,15 @@ const setsWon = (m: Match) => {
   }
 }
 
+// undefined (rather than false) for a draw, so neither side gets dimmed as
+// a "loser" - a draw isn't a loss for either team.
+const winnerFlag = (m: Match, side: 'A' | 'B'): boolean | undefined =>
+  m.winnerTeam === 'draw' ? undefined : m.winnerTeam === side
+const summaryPillClass = (m: Match, side: 'A' | 'B') =>
+  m.winnerTeam === 'draw' ? 'sp-draw' : m.winnerTeam === side ? 'sp-win' : 'sp-lose'
+const setPillClass = (mine: number, other: number) =>
+  mine > other ? 'sp-win' : mine < other ? 'sp-lose' : 'sp-draw'
+
 const formatDate = (ts: number) =>
   new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 </script>
@@ -89,7 +98,7 @@ const formatDate = (ts: number) =>
                 :players="teamRoster(match, 'A')"
                 align="start"
                 :avatarSize="22"
-                :winner="match.winnerTeam === 'A'"
+                :winner="winnerFlag(match, 'A')"
               />
               <div class="match-score-block">
                 <template v-if="displaySets(match).length > 1">
@@ -99,13 +108,9 @@ const formatDate = (ts: number) =>
                     type="button"
                     @click.stop="toggleSetsDetail(match.id)"
                   >
-                    <span :class="match.winnerTeam === 'A' ? 'sp-win' : 'sp-lose'">{{
-                      setsWon(match).a
-                    }}</span>
+                    <span :class="summaryPillClass(match, 'A')">{{ setsWon(match).a }}</span>
                     <span class="sp-sep">:</span>
-                    <span :class="match.winnerTeam === 'B' ? 'sp-win' : 'sp-lose'">{{
-                      setsWon(match).b
-                    }}</span>
+                    <span :class="summaryPillClass(match, 'B')">{{ setsWon(match).b }}</span>
                     <svg
                       class="score-chevron"
                       :class="{ 'score-chevron--open': expandedMatchIds.has(match.id) }"
@@ -125,9 +130,9 @@ const formatDate = (ts: number) =>
                 </template>
                 <template v-else>
                   <span v-for="s in displaySets(match)" :key="s.scoreA" class="set-pill">
-                    <span :class="s.scoreA > s.scoreB ? 'sp-win' : 'sp-lose'">{{ s.scoreA }}</span>
+                    <span :class="setPillClass(s.scoreA, s.scoreB)">{{ s.scoreA }}</span>
                     <span class="sp-sep">:</span>
-                    <span :class="s.scoreB > s.scoreA ? 'sp-win' : 'sp-lose'">{{ s.scoreB }}</span>
+                    <span :class="setPillClass(s.scoreB, s.scoreA)">{{ s.scoreB }}</span>
                   </span>
                 </template>
               </div>
@@ -136,7 +141,7 @@ const formatDate = (ts: number) =>
                 :players="teamRoster(match, 'B')"
                 align="end"
                 :avatarSize="22"
-                :winner="match.winnerTeam === 'B'"
+                :winner="winnerFlag(match, 'B')"
               />
             </div>
             <span class="match-date">{{ formatDate(match.createdAt) }}</span>
@@ -147,9 +152,9 @@ const formatDate = (ts: number) =>
           >
             <div v-for="(s, si) in displaySets(match)" :key="si" class="sets-detail-item">
               <span class="sets-detail-num">{{ si + 1 }}</span>
-              <span :class="s.scoreA > s.scoreB ? 'sp-win' : 'sp-lose'">{{ s.scoreA }}</span>
+              <span :class="setPillClass(s.scoreA, s.scoreB)">{{ s.scoreA }}</span>
               <span class="sp-sep">:</span>
-              <span :class="s.scoreB > s.scoreA ? 'sp-win' : 'sp-lose'">{{ s.scoreB }}</span>
+              <span :class="setPillClass(s.scoreB, s.scoreA)">{{ s.scoreB }}</span>
             </div>
           </div>
         </div>
@@ -308,6 +313,10 @@ const formatDate = (ts: number) =>
 
 .sp-lose {
   color: var(--color-border);
+}
+
+.sp-draw {
+  color: var(--color-text-subtle);
 }
 
 .sp-sep {

@@ -12,6 +12,7 @@ import type {
   UpdateTournamentPayload,
 } from '@/stores/tournaments'
 import type { MatchFormat } from '@/stores/matches'
+import type { Player } from '@/stores/players'
 import { useAuthStore } from '@/stores/auth'
 import { CITIES, courtsInCity, courtLabel } from '@/utils/courts'
 import {
@@ -28,12 +29,22 @@ import {
   SIT_OUT_FRACTIONS,
 } from '@/utils/tournamentRules'
 import TournamentRosterFields from '@/components/tournaments/TournamentRosterFields.vue'
+import TournamentClubRosterFields from '@/components/tournaments/TournamentClubRosterFields.vue'
 
 // When `initial` is set, the form edits that tournament in place instead of
 // creating a new one - roster fields are hidden (roster changes go through
 // the detail page's leave/kick actions instead of a bulk edit).
-const props = defineProps<{ initial?: Tournament }>()
+// `clubId`/`clubPlayers`/`myClubPlayer*` are only passed when creating (or
+// editing) a club-scoped tournament
+const props = defineProps<{
+  initial?: Tournament
+  clubId?: string
+  clubPlayers?: Player[]
+  myClubPlayerId?: string
+  myClubPlayerName?: string
+}>()
 const isEditMode = computed(() => !!props.initial)
+const isClubTournament = computed(() => !!props.clubId || !!props.initial?.clubId)
 
 const emit = defineEmits<{
   cancel: []
@@ -168,24 +179,34 @@ watch(pointsMode, (mode) => {
 })
 
 const matchFormat = ref<MatchFormat>(props.initial?.matchFormat ?? 'competitive')
-const visibility = ref<TournamentVisibility>(props.initial?.visibility ?? 'public')
+const visibility = ref<TournamentVisibility>(
+  props.initial?.visibility ?? (props.clubId ? 'private' : 'public'),
+)
 const creatorParticipates = ref(props.initial?.creatorParticipates ?? true)
 
 // roster (create mode only — edit mode changes the roster via the
 // detail page's leave/kick actions instead)
 const invitedUids = ref<string[]>([])
 const guests = ref<TournamentGuest[]>([])
+const selectedClubPlayerIds = ref<string[]>([])
 const myUid = computed(() => authStore.user?.uid)
 const excludeUids = computed(() => (myUid.value ? [myUid.value] : []))
 
 // In edit mode, the roster already exists on `initial` — track it net of the
 // creator-participates toggle so downsizing max participants below the
-// current roster size still gets caught by validate().
+// current roster size still gets caught by validate(). Club tournaments
+// track the organizer's own participation via their `guests` entry (keyed
+// by club Player.id) instead of `participantUids`.
 const currentRosterCount = computed(() => {
   if (props.initial) {
-    const wasCreatorIn = props.initial.participantUids.includes(props.initial.createdBy)
+    const wasCreatorIn = props.initial.clubId
+      ? !!props.myClubPlayerId && props.initial.guests.some((g) => g.id === props.myClubPlayerId)
+      : props.initial.participantUids.includes(props.initial.createdBy)
     const delta = (creatorParticipates.value ? 1 : 0) - (wasCreatorIn ? 1 : 0)
     return props.initial.participantUids.length + props.initial.guests.length + delta
+  }
+  if (props.clubId) {
+    return (creatorParticipates.value ? 1 : 0) + selectedClubPlayerIds.value.length
   }
   return (creatorParticipates.value ? 1 : 0) + invitedUids.value.length + guests.value.length
 })
@@ -289,7 +310,26 @@ const submit = async (status: 'draft' | 'upcoming') => {
   try {
     if (props.initial) {
       const payload: UpdateTournamentPayload = basePayload
-      await tournamentsStore.updateTournament(props.initial.id, payload, status, uid)
+      const myClubPlayer =
+        isClubTournament.value && props.myClubPlayerId && props.myClubPlayerName
+          ? { id: props.myClubPlayerId, name: props.myClubPlayerName }
+          : undefined
+      await tournamentsStore.updateTournament(props.initial.id, payload, status, uid, myClubPlayer)
+    } else if (props.clubId) {
+      const guestsFromClub: TournamentGuest[] = selectedClubPlayerIds.value.map((id) => ({
+        id,
+        name: props.clubPlayers?.find((p) => p.id === id)?.name ?? 'Player',
+      }))
+      if (creatorParticipates.value && props.myClubPlayerId && props.myClubPlayerName) {
+        guestsFromClub.push({ id: props.myClubPlayerId, name: props.myClubPlayerName })
+      }
+      const payload: CreateTournamentPayload = {
+        ...basePayload,
+        clubId: props.clubId,
+        invitedUids: [],
+        guests: guestsFromClub,
+      }
+      await tournamentsStore.createTournament(payload, status, uid)
     } else {
       const payload: CreateTournamentPayload = {
         ...basePayload,
@@ -634,8 +674,15 @@ const submit = async (status: 'draft' | 'upcoming') => {
       </label>
     </div>
 
+    <TournamentClubRosterFields
+      v-if="!isEditMode && clubId"
+      v-model:selected-ids="selectedClubPlayerIds"
+      :players="clubPlayers ?? []"
+      :exclude-player-id="myClubPlayerId"
+      :remaining-slots="remainingSlots"
+    />
     <TournamentRosterFields
-      v-if="!isEditMode"
+      v-else-if="!isEditMode"
       v-model:invited-uids="invitedUids"
       v-model:guests="guests"
       :exclude-uids="excludeUids"

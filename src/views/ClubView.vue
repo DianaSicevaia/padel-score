@@ -8,6 +8,7 @@ import MobileTopBar from '@/components/layout/MobileTopBar.vue'
 import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
 import { useMatchesStore } from '@/stores/matches'
 import type { Match, MatchFormat } from '@/stores/matches'
+import { useTournamentsStore } from '@/stores/tournaments'
 import { useAuthStore } from '@/stores/auth'
 import ClubPlayersPanel from '@/components/club/ClubPlayersPanel.vue'
 import MatchForm from '@/components/club/MatchForm.vue'
@@ -19,6 +20,7 @@ const router = useRouter()
 const clubsStore = useClubsStore()
 const playersStore = usePlayersStore()
 const matchesStore = useMatchesStore()
+const tournamentsStore = useTournamentsStore()
 const authStore = useAuthStore()
 
 const currentUid = computed(() => authStore.user?.uid ?? null)
@@ -29,7 +31,10 @@ const myPlayer = computed(() =>
 const clubId = computed(() => route.params.id as string)
 const club = computed(() => clubsStore.clubs.find((c) => c.id === clubId.value))
 const isLoading = computed(() => clubsStore.loading || playersStore.loading || matchesStore.loading)
-const canCreateMatch = computed(() => playersStore.players.length >= 2)
+// Only the club owner may add/edit players and create/edit/cancel matches —
+// everyone else has read-only access to the roster and match history.
+const isOwner = computed(() => !!club.value && club.value.ownerId === currentUid.value)
+const canCreateMatch = computed(() => isOwner.value && playersStore.players.length >= 2)
 
 const formatDate = (ts: number) =>
   new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
@@ -89,23 +94,47 @@ const scheduledMatches = computed(() =>
 )
 const completedMatches = computed(() => matchesStore.matches.filter((m) => !!m.winnerTeam))
 
+// ── Tournaments ─────────────────────────────────────
+const clubTournaments = computed(() =>
+  tournamentsStore.tournaments
+    .filter((t) => t.clubId === clubId.value)
+    .sort((a, b) => b.createdAt - a.createdAt),
+)
+const tournamentStatusLabel = (status: string) =>
+  ({
+    draft: 'Draft',
+    upcoming: 'Upcoming',
+    live: 'Live',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+  })[status] ?? status
+const goCreateTournament = () => router.push(`/tournaments/new?clubId=${clubId.value}`)
+const openTournament = (id: string) => router.push(`/tournaments/${id}`)
+const canCreateTournament = computed(() => isOwner.value && playersStore.players.length >= 4)
+
 // ── Bootstrap ──────────────────────────────────────
 let unsubPlayers: (() => void) | null = null
 let unsubMatches: (() => void) | null = null
+let unsubTournaments: (() => void) | null = null
 
 onMounted(async () => {
   // clubsStore.clubs is kept live app-wide (see App.vue) — no fetch needed here.
   unsubPlayers = playersStore.subscribePlayers(clubId.value)
   unsubMatches = matchesStore.subscribeMatches(clubId.value)
+  if (currentUid.value) {
+    unsubTournaments = tournamentsStore.subscribeTournaments(currentUid.value, [clubId.value])
+  }
 
   if (route.query.newMatch === '1') {
-    openMatchForm()
+    if (isOwner.value) openMatchForm()
     router.replace({ params: route.params, query: {} })
   }
   if (route.query.playNow) {
     const matchId = route.query.playNow as string
-    const m = await matchesStore.fetchMatchById(matchId)
-    if (m) await handlePlayNow(m)
+    if (isOwner.value) {
+      const m = await matchesStore.fetchMatchById(matchId)
+      if (m) await handlePlayNow(m)
+    }
     router.replace({ params: route.params, query: {} })
   }
 })
@@ -113,6 +142,7 @@ onMounted(async () => {
 onUnmounted(() => {
   unsubPlayers?.()
   unsubMatches?.()
+  unsubTournaments?.()
 })
 </script>
 
@@ -178,14 +208,21 @@ onUnmounted(() => {
                 <div class="club-header-avatar">{{ club.name[0]?.toUpperCase() }}</div>
                 <div>
                   <h1 class="page-title">{{ club.name }}</h1>
-                  <p class="page-subtitle">Owner · Created {{ formatDate(club.createdAt) }}</p>
+                  <p class="page-subtitle">
+                    {{ isOwner ? 'Owner' : 'Member' }} · Created {{ formatDate(club.createdAt) }}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
           <!-- Players panel -->
-          <ClubPlayersPanel :clubId="clubId" :currentUid="currentUid" :myPlayer="myPlayer" />
+          <ClubPlayersPanel
+            :clubId="clubId"
+            :currentUid="currentUid"
+            :myPlayer="myPlayer"
+            :isOwner="isOwner"
+          />
 
           <!-- Matches panel -->
           <div class="panel matches-panel">
@@ -193,6 +230,7 @@ onUnmounted(() => {
               <span class="panel-title">Matches</span>
               <span class="count-badge">{{ completedMatches.length }}</span>
               <button
+                v-if="isOwner"
                 class="btn-sm-primary panel-hdr-btn"
                 :disabled="
                   (!canCreateMatch && !formEditingMatch) || (showMatchForm && !formEditingMatch)
@@ -209,7 +247,7 @@ onUnmounted(() => {
             </div>
 
             <!-- Match form -->
-            <template v-if="showMatchForm">
+            <template v-if="isOwner && showMatchForm">
               <div class="panel-divider"></div>
               <MatchForm
                 :clubId="clubId"
@@ -252,6 +290,7 @@ onUnmounted(() => {
                   :match="match"
                   :players="playersStore.players"
                   :currentUid="currentUid"
+                  :isOwner="isOwner"
                   @play-now="handlePlayNow"
                   @cancel-match="handleCancelSchedule"
                 />
@@ -268,6 +307,7 @@ onUnmounted(() => {
                 :isDeleting="deletingMatchId === match.id"
                 :isEditing="formEditingMatch?.id === match.id"
                 :players="playersStore.players"
+                :isOwner="isOwner"
                 @edit="openMatchForm"
                 @delete="handleDeleteMatch"
               />
@@ -277,6 +317,40 @@ onUnmounted(() => {
             <template v-if="completedMatches.length === 0 && !showMatchForm">
               <div class="panel-divider"></div>
               <div class="matches-empty">No matches recorded yet.</div>
+            </template>
+          </div>
+
+          <!-- Tournaments panel -->
+          <div class="panel matches-panel">
+            <div class="panel-hdr">
+              <span class="panel-title">Tournaments</span>
+              <span class="count-badge">{{ clubTournaments.length }}</span>
+              <button
+                v-if="isOwner"
+                class="btn-sm-primary panel-hdr-btn"
+                :disabled="!canCreateTournament"
+                :title="
+                  !canCreateTournament ? 'Need at least 4 players to record a tournament' : ''
+                "
+                @click="goCreateTournament"
+              >
+                + New Tournament
+              </button>
+            </div>
+
+            <template v-for="t in clubTournaments" :key="t.id">
+              <div class="panel-divider"></div>
+              <div class="tournament-row" @click="openTournament(t.id)">
+                <span class="tournament-row-name">{{ t.name }}</span>
+                <span class="status-pill" :class="`status-pill--${t.status}`">{{
+                  tournamentStatusLabel(t.status)
+                }}</span>
+              </div>
+            </template>
+
+            <template v-if="clubTournaments.length === 0">
+              <div class="panel-divider"></div>
+              <div class="matches-empty">No tournaments yet.</div>
             </template>
           </div>
         </template>
@@ -433,6 +507,7 @@ onUnmounted(() => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
   max-width: 640px;
+  min-height: 200px;
 }
 
 .matches-panel {
@@ -480,6 +555,66 @@ onUnmounted(() => {
   font-family: 'Inter', sans-serif;
   font-size: 13px;
   color: var(--color-text-subtle);
+}
+
+.tournament-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.tournament-row:hover {
+  background: var(--color-bg-subtle);
+}
+
+.tournament-row-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-pill {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 3px 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.status-pill--draft {
+  color: var(--color-text-muted);
+  background: var(--color-bg-muted);
+}
+
+.status-pill--upcoming {
+  color: #1a6ab0;
+  background: var(--color-bg-info);
+}
+
+.status-pill--live {
+  color: #b0631a;
+  background: #fff4e8;
+}
+
+.status-pill--completed {
+  color: #1a7a3c;
+  background: #f0faf3;
+}
+
+.status-pill--cancelled {
+  color: var(--color-danger-text);
+  background: var(--color-danger-bg-hover);
 }
 
 /* ── BUTTONS ── */

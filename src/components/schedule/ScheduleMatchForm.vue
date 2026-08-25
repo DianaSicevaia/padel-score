@@ -37,7 +37,7 @@ const rankMin = ref(3.0)
 const rankMax = ref(4.0)
 const city = ref(CITIES[0]!)
 const court = ref('')
-const genderPreference = ref<GenderPreference>('neutral')
+const genderPreference = ref<GenderPreference>('mixed')
 
 const matchError = ref('')
 const submitting = ref(false)
@@ -92,7 +92,11 @@ const submit = async () => {
     matchError.value = 'Scheduled time must be in the future.'
     return
   }
-  if (matchFormat.value === 'competitive' && competitiveScope.value === 'ranked' && rankMin.value > rankMax.value) {
+  if (
+    matchFormat.value === 'competitive' &&
+    competitiveScope.value === 'ranked' &&
+    rankMin.value > rankMax.value
+  ) {
     matchError.value = 'Minimum rank must be lower than the maximum.'
     return
   }

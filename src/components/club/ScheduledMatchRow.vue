@@ -12,6 +12,7 @@ const props = defineProps<{
   match: Match
   players: Player[]
   currentUid: string | null
+  isOwner: boolean
 }>()
 
 const canPlayNow = () => !props.match.createdBy || props.match.createdBy === props.currentUid
@@ -57,6 +58,7 @@ const formatScheduled = (ts: number) => {
 }
 
 const openEdit = () => {
+  if (!props.isOwner) return
   const d = new Date(props.match.scheduledAt!)
   editDate.value = d.toISOString().slice(0, 10)
   editTime.value = d.toTimeString().slice(0, 5)
@@ -125,49 +127,51 @@ const confirmEdit = async () => {
           ▶ Play now
         </button>
         <span v-else class="status-badge">Only the organizer can start this match</span>
-        <button
-          v-if="match.status !== 'cancelled'"
-          class="btn-icon"
-          title="Edit schedule"
-          @click="openEdit"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
+        <template v-if="isOwner">
+          <button
+            v-if="match.status !== 'cancelled'"
+            class="btn-icon"
+            title="Edit schedule"
+            @click="openEdit"
           >
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-            <line x1="16" y1="2" x2="16" y2="6" />
-            <line x1="8" y1="2" x2="8" y2="6" />
-            <line x1="3" y1="10" x2="21" y2="10" />
-          </svg>
-        </button>
-        <button
-          class="btn-icon btn-icon-danger"
-          title="Cancel match"
-          @click="emit('cancel-match', match.id)"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          </button>
+          <button
+            class="btn-icon btn-icon-danger"
+            title="Cancel match"
+            @click="emit('cancel-match', match.id)"
           >
-            <path d="M18 6 6 18" />
-            <path d="m6 6 12 12" />
-          </svg>
-        </button>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </template>
       </div>
     </template>
   </div>

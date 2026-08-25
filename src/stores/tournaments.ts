@@ -7,6 +7,7 @@ import {
   addDoc,
   doc,
   getDoc,
+  getDocs,
   updateDoc,
   deleteDoc,
   deleteField,
@@ -15,6 +16,8 @@ import type { Unsubscribe } from 'firebase/firestore'
 import { db } from '@/firebase'
 import type { MatchFormat } from '@/stores/matches'
 import { useNotificationsStore } from '@/stores/notifications'
+import { usePlayersStore } from '@/stores/players'
+import { useUsersStore } from '@/stores/users'
 import { generateSchedule } from '@/utils/tournamentScheduler'
 import type { ScheduledRound } from '@/utils/tournamentScheduler'
 import {
@@ -24,6 +27,8 @@ import {
   roundsDefault,
   maxCourtsForParticipants,
 } from '@/utils/tournamentRules'
+import { computeTournamentRatingUpdates } from '@/utils/tournamentRatings'
+import { ELO_START_RATING } from '@/utils/elo'
 
 export type TournamentFormat = 'classic-americano' // only option for now, extensible
 export type LeaderboardSort = 'points' | 'wins'
@@ -55,6 +60,11 @@ export interface Tournament {
   id: string
   name: string
   description?: string
+  // When set, this is a club-scoped tournament: roster is drawn exclusively
+  // from that club's player list (no invite flow — organizer picks players
+  // directly, same trust model as club matches), and competitive results
+  // update each player's club rating instead of their global user rating.
+  clubId?: string
   format: TournamentFormat
   matchFormat: MatchFormat
   scheduledAt: number
@@ -82,6 +92,7 @@ export interface Tournament {
 export interface CreateTournamentPayload {
   name: string
   description?: string
+  clubId?: string
   format: TournamentFormat
   matchFormat: MatchFormat
   scheduledAt: number
@@ -101,9 +112,10 @@ export interface CreateTournamentPayload {
   guests: TournamentGuest[]
 }
 
-// Same shape minus the invite-only fields — roster changes on an existing
-// tournament go through removeParticipant/removeGuest instead of a bulk edit.
-export type UpdateTournamentPayload = Omit<CreateTournamentPayload, 'invitedUids' | 'guests'>
+export type UpdateTournamentPayload = Omit<
+  CreateTournamentPayload,
+  'invitedUids' | 'guests' | 'clubId'
+>
 
 interface TournamentsState {
   tournaments: Tournament[]
@@ -118,31 +130,33 @@ export const useTournamentsStore = defineStore('tournaments', {
 
   actions: {
     // Live-subscribes to every public tournament, this user's own (including
-    // private drafts), and any tournament they've been accepted into as a
-    // participant (needed so an invite to someone else's *private*
-    // tournament still shows up once accepted) — merged the same way
-    // clubs.ts merges owned+member clubs. The view derives "Public" vs "My
-    // Tournaments" sections client-side from this one array.
-    subscribeTournaments(uid: string): Unsubscribe {
+    // private drafts), any tournament they've been accepted into as a
+    // participant and every tournament that belongs to a club they're in are
+    // merged the same way clubs.ts merges owned+member clubs.
+    // The view derives "Public" vs "My Tournaments" sections client-side
+    // from this one array. `clubIds` is capped at 10 (Firestore 'in' limit).
+    subscribeTournaments(uid: string, clubIds: string[] = []): Unsubscribe {
       this.loading = true
       let pub: Tournament[] = []
       let mine: Tournament[] = []
       let playing: Tournament[] = []
+      let clubs: Tournament[] = []
       let pubReady = false
       let mineReady = false
       let playingReady = false
+      let clubsReady = !clubIds.length
 
       const merge = () => {
         const seen = new Set<string>()
         const merged: Tournament[] = []
-        for (const t of [...pub, ...mine, ...playing]) {
+        for (const t of [...pub, ...mine, ...playing, ...clubs]) {
           if (!seen.has(t.id)) {
             seen.add(t.id)
             merged.push(t)
           }
         }
         this.tournaments = merged.sort((a, b) => b.createdAt - a.createdAt)
-        if (pubReady && mineReady && playingReady) this.loading = false
+        if (pubReady && mineReady && playingReady && clubsReady) this.loading = false
       }
 
       const unsubPublic = onSnapshot(
@@ -169,11 +183,22 @@ export const useTournamentsStore = defineStore('tournaments', {
           merge()
         },
       )
+      const unsubClubs = clubIds.length
+        ? onSnapshot(
+            query(collection(db, 'tournaments'), where('clubId', 'in', clubIds.slice(0, 10))),
+            (snap) => {
+              clubs = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Tournament, 'id'>) }))
+              clubsReady = true
+              merge()
+            },
+          )
+        : null
 
       return () => {
         unsubPublic()
         unsubMine()
         unsubPlaying()
+        unsubClubs?.()
       }
     },
 
@@ -182,11 +207,16 @@ export const useTournamentsStore = defineStore('tournaments', {
       status: 'draft' | 'upcoming',
       creatorUid: string,
     ) {
-      const participantUids = payload.creatorParticipates ? [creatorUid] : []
+      // Club tournaments skip the invite/accept flow entirely.
+      // The roster is picked directly from the club's player list.
+      // `participantUids` stays empty;
+      const isClub = !!payload.clubId
+      const participantUids = isClub ? [] : payload.creatorParticipates ? [creatorUid] : []
       const now = Date.now()
       const data: Omit<Tournament, 'id'> = {
         name: payload.name,
         ...(payload.description ? { description: payload.description } : {}),
+        ...(payload.clubId ? { clubId: payload.clubId } : {}),
         format: payload.format,
         matchFormat: payload.matchFormat,
         scheduledAt: payload.scheduledAt,
@@ -208,13 +238,13 @@ export const useTournamentsStore = defineStore('tournaments', {
         creatorParticipates: payload.creatorParticipates,
         participantUids,
         guests: payload.guests,
-        pendingUids: payload.invitedUids,
+        pendingUids: isClub ? [] : payload.invitedUids,
         createdAt: now,
       }
 
       const docRef = await addDoc(collection(db, 'tournaments'), data)
 
-      if (payload.invitedUids.length) {
+      if (!isClub && payload.invitedUids.length) {
         await useNotificationsStore().createTournamentInviteNotifications(
           payload.invitedUids,
           docRef.id,
@@ -250,11 +280,16 @@ export const useTournamentsStore = defineStore('tournaments', {
 
     // Only meaningful while the tournament hasn't started (draft/upcoming)
     // enforced by the views that expose the Edit action, not re-checked here.
+    // `myClubPlayer` is only needed (and only used) when editing a club
+    // tournament — the organizer's own club Player id/name, so toggling
+    // "I'm playing" can add/remove their `guests` entry the same way it
+    // adds/removes a uid for a standalone tournament.
     async updateTournament(
       tournamentId: string,
       payload: UpdateTournamentPayload,
       status: 'draft' | 'upcoming',
       creatorUid: string,
+      myClubPlayer?: { id: string; name: string },
     ) {
       const ref = doc(db, 'tournaments', tournamentId)
       const snap = await getDoc(ref)
@@ -262,12 +297,22 @@ export const useTournamentsStore = defineStore('tournaments', {
       const data = snap.data() as Omit<Tournament, 'id'>
 
       // Toggling "I'm playing" during an edit adds/removes the organizer's
-      // own uid from the roster, same as it does at creation time.
+      // own entry from the roster, same as it does at creation time.
       let participantUids = data.participantUids ?? []
-      if (payload.creatorParticipates && !participantUids.includes(creatorUid)) {
-        participantUids = [...participantUids, creatorUid]
-      } else if (!payload.creatorParticipates && participantUids.includes(creatorUid)) {
-        participantUids = participantUids.filter((u) => u !== creatorUid)
+      let guests = data.guests ?? []
+      if (data.clubId && myClubPlayer) {
+        const isIn = guests.some((g) => g.id === myClubPlayer.id)
+        if (payload.creatorParticipates && !isIn) {
+          guests = [...guests, { id: myClubPlayer.id, name: myClubPlayer.name }]
+        } else if (!payload.creatorParticipates && isIn) {
+          guests = guests.filter((g) => g.id !== myClubPlayer.id)
+        }
+      } else {
+        if (payload.creatorParticipates && !participantUids.includes(creatorUid)) {
+          participantUids = [...participantUids, creatorUid]
+        } else if (!payload.creatorParticipates && participantUids.includes(creatorUid)) {
+          participantUids = participantUids.filter((u) => u !== creatorUid)
+        }
       }
 
       const updates = {
@@ -292,6 +337,7 @@ export const useTournamentsStore = defineStore('tournaments', {
         visibility: payload.visibility,
         creatorParticipates: payload.creatorParticipates,
         participantUids,
+        guests,
         status,
       }
       await updateDoc(ref, updates)
@@ -362,10 +408,72 @@ export const useTournamentsStore = defineStore('tournaments', {
       if (idx !== -1) this.tournaments[idx] = { ...this.tournaments[idx]!, schedule }
     },
 
+    // Competitive results move rating — club-scoped for a club tournament
+    // (every participant's `guests` entry is really a club Player.id, so
+    // updates land on their club rating only), or the global user rating
+    // for a standalone tournament (registered participants only, guests
+    // have no account to update). Friendly tournaments never
+    // touch rating, same as friendly matches.
     async completeTournament(tournamentId: string) {
-      await updateDoc(doc(db, 'tournaments', tournamentId), { status: 'completed' })
+      const ref = doc(db, 'tournaments', tournamentId)
+      const snap = await getDoc(ref)
+      if (!snap.exists()) return
+      const data = snap.data() as Omit<Tournament, 'id'>
+
+      if (data.matchFormat === 'competitive' && data.schedule?.length) {
+        if (data.clubId) {
+          await this.applyClubTournamentRatings(data.clubId, data.schedule)
+        } else {
+          await this.applyStandaloneTournamentRatings(data.participantUids ?? [], data.schedule)
+        }
+      }
+
+      await updateDoc(ref, { status: 'completed' })
       const idx = this.tournaments.findIndex((t) => t.id === tournamentId)
       if (idx !== -1) this.tournaments[idx] = { ...this.tournaments[idx]!, status: 'completed' }
+    },
+
+    async applyClubTournamentRatings(clubId: string, schedule: TournamentRound[]) {
+      const playerIds = new Set<string>()
+      for (const round of schedule) {
+        for (const m of round.matchups) {
+          m.team1.forEach((id) => playerIds.add(id))
+          m.team2.forEach((id) => playerIds.add(id))
+        }
+      }
+      if (!playerIds.size) return
+
+      const snap = await getDocs(query(collection(db, 'players'), where('clubId', '==', clubId)))
+      const startingRatings = new Map<string, number>()
+      for (const d of snap.docs) {
+        if (!playerIds.has(d.id)) continue
+        const rating = (d.data() as { rating?: number }).rating
+        startingRatings.set(d.id, rating || ELO_START_RATING)
+      }
+
+      const updates = computeTournamentRatingUpdates(schedule, startingRatings)
+      if (updates.length) await usePlayersStore().applyMatchResult(updates)
+    },
+
+    async applyStandaloneTournamentRatings(participantUids: string[], schedule: TournamentRound[]) {
+      if (!participantUids.length) return
+      const usersStore = useUsersStore()
+      const profiles = await usersStore.getUsersByUid(participantUids)
+      const startingRatings = new Map(profiles.map((u) => [u.uid, u.rating || ELO_START_RATING]))
+
+      // Guests appear in the schedule (they still count toward each
+      // matchup's opponent strength) but have no account to persist a
+      // rating update to, so only keep results for actual registered uids.
+      const updates = computeTournamentRatingUpdates(schedule, startingRatings)
+        .filter((u) => participantUids.includes(u.id))
+        .map((u) => ({
+          uid: u.id,
+          rating: u.rating,
+          matchesPlayed: u.matchesPlayed,
+          wins: u.wins,
+          losses: u.losses,
+        }))
+      if (updates.length) await usersStore.applyMatchResult(updates)
     },
 
     async cancelTournament(tournamentId: string) {

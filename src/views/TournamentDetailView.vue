@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useTournamentsStore } from '@/stores/tournaments'
 import { useUsersStore } from '@/stores/users'
 import { useAuthStore } from '@/stores/auth'
+import { useClubsStore } from '@/stores/clubs'
 import { courtLabel, courtAddress } from '@/utils/courts'
 import { matchesPerPlayer, formatMatchesPerPlayer, MIN_PARTICIPANTS } from '@/utils/tournamentRules'
 import { isTournamentFullyScored } from '@/utils/tournamentStandings'
@@ -19,11 +20,17 @@ const router = useRouter()
 const tournamentsStore = useTournamentsStore()
 const usersStore = useUsersStore()
 const authStore = useAuthStore()
+const clubsStore = useClubsStore()
 const mobileMenuOpen = ref(false)
 
 let unsub: (() => void) | null = null
 onMounted(() => {
-  if (authStore.user) unsub = tournamentsStore.subscribeTournaments(authStore.user.uid)
+  if (authStore.user) {
+    unsub = tournamentsStore.subscribeTournaments(
+      authStore.user.uid,
+      clubsStore.clubs.map((c) => c.id),
+    )
+  }
 })
 onUnmounted(() => unsub?.())
 
@@ -37,7 +44,10 @@ const isOrganizer = computed(
   () => !!tournament.value && !!currentUid.value && tournament.value.createdBy === currentUid.value,
 )
 const isParticipant = computed(
-  () => !!tournament.value && !!currentUid.value && tournament.value.participantUids.includes(currentUid.value),
+  () =>
+    !!tournament.value &&
+    !!currentUid.value &&
+    tournament.value.participantUids.includes(currentUid.value),
 )
 // Once a tournament is completed or cancelled, its roster and details are frozen.
 const isEditableStatus = computed(
@@ -90,9 +100,13 @@ const canFinish = computed(
 
 const statusLabel = computed(() =>
   tournament.value
-    ? ({ draft: 'Draft', upcoming: 'Upcoming', live: 'Live', completed: 'Completed', cancelled: 'Cancelled' })[
-        tournament.value.status
-      ]
+    ? {
+        draft: 'Draft',
+        upcoming: 'Upcoming',
+        live: 'Live',
+        completed: 'Completed',
+        cancelled: 'Cancelled',
+      }[tournament.value.status]
     : '',
 )
 
@@ -177,12 +191,19 @@ const cancelTournament = async () => {
 
 const startTournament = async () => {
   if (!tournament.value) return
-  const rosterIds = [...tournament.value.participantUids, ...tournament.value.guests.map((g) => g.id)]
+  const rosterIds = [
+    ...tournament.value.participantUids,
+    ...tournament.value.guests.map((g) => g.id),
+  ]
   if (rosterIds.length < MIN_PARTICIPANTS) {
     alert(`Need at least ${MIN_PARTICIPANTS} participants to start.`)
     return
   }
-  if (!confirm(`Start the tournament with ${rosterIds.length} players? The roster locks in once started.`)) {
+  if (
+    !confirm(
+      `Start the tournament with ${rosterIds.length} players? The roster locks in once started.`,
+    )
+  ) {
     return
   }
   actionPending.value = true
@@ -242,20 +263,37 @@ const deleteTournament = async () => {
                 statusLabel
               }}</span>
             </div>
-            <p v-if="tournament.description" class="tournament-desc">{{ tournament.description }}</p>
+            <p v-if="tournament.description" class="tournament-desc">
+              {{ tournament.description }}
+            </p>
             <span class="tournament-organizer">Organized by {{ organizerName }}</span>
 
             <div v-if="isOrganizer || canLeave" class="action-bar">
-              <button v-if="canStart" class="btn-accent" :disabled="actionPending" @click="startTournament">
+              <button
+                v-if="canStart"
+                class="btn-accent"
+                :disabled="actionPending"
+                @click="startTournament"
+              >
                 Start Tournament
               </button>
-              <button v-if="canFinish" class="btn-accent" :disabled="actionPending" @click="finishTournament">
+              <button
+                v-if="canFinish"
+                class="btn-accent"
+                :disabled="actionPending"
+                @click="finishTournament"
+              >
                 Finish Tournament
               </button>
               <button v-if="canEdit" class="btn-sm-ghost" :disabled="actionPending" @click="goEdit">
                 Edit
               </button>
-              <button v-if="canCancel" class="btn-sm-ghost" :disabled="actionPending" @click="cancelTournament">
+              <button
+                v-if="canCancel"
+                class="btn-sm-ghost"
+                :disabled="actionPending"
+                @click="cancelTournament"
+              >
                 Cancel Tournament
               </button>
               <button
@@ -266,7 +304,12 @@ const deleteTournament = async () => {
               >
                 Delete Tournament
               </button>
-              <button v-if="canLeave" class="btn-sm-ghost btn-sm-ghost--danger" :disabled="actionPending" @click="leaveTournament">
+              <button
+                v-if="canLeave"
+                class="btn-sm-ghost btn-sm-ghost--danger"
+                :disabled="actionPending"
+                @click="leaveTournament"
+              >
                 Leave Tournament
               </button>
             </div>
@@ -281,6 +324,9 @@ const deleteTournament = async () => {
                 <span class="detail-value">{{
                   tournament.matchFormat === 'friendly' ? 'Friendly' : 'Competitive'
                 }}</span>
+                <span v-if="tournament.matchFormat === 'competitive'" class="detail-sub">{{
+                  tournament.clubId ? 'Affects club rating' : 'Affects global rating'
+                }}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">When</span>
@@ -289,7 +335,9 @@ const deleteTournament = async () => {
               <div class="detail-item">
                 <span class="detail-label">Court</span>
                 <span class="detail-value">{{ courtLabel(tournament.court) }}</span>
-                <span v-if="tournament.court" class="detail-sub">{{ courtAddress(tournament.court) }}</span>
+                <span v-if="tournament.court" class="detail-sub">{{
+                  courtAddress(tournament.court)
+                }}</span>
               </div>
               <div class="detail-item">
                 <span class="detail-label">Participants</span>
@@ -333,7 +381,13 @@ const deleteTournament = async () => {
               <span class="detail-label">Roster</span>
               <div class="roster-list">
                 <div v-for="p in participants" :key="p.id" class="roster-entry">
-                  <PlayerAvatar :name="p.name" :photoUrl="p.photoUrl" :backgroundId="p.backgroundId" :id="p.id" :size="28" />
+                  <PlayerAvatar
+                    :name="p.name"
+                    :photoUrl="p.photoUrl"
+                    :backgroundId="p.backgroundId"
+                    :id="p.id"
+                    :size="28"
+                  />
                   <span class="roster-name">{{ p.name }}</span>
                   <button
                     v-if="canManageRoster && p.id !== tournament.createdBy"
@@ -349,7 +403,7 @@ const deleteTournament = async () => {
                 <div v-for="g in guestEntries" :key="g.id" class="roster-entry">
                   <PlayerAvatar :name="g.name" :id="g.id" :size="28" />
                   <span class="roster-name">{{ g.name }}</span>
-                  <span class="roster-guest-tag">guest</span>
+                  <span v-if="!tournament.clubId" class="roster-guest-tag">guest</span>
                   <button
                     v-if="canManageRoster"
                     class="roster-remove-btn"
