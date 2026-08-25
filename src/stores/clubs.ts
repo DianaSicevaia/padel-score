@@ -112,5 +112,16 @@ export const useClubsStore = defineStore('clubs', {
       await updateDoc(doc(db, 'clubs', id), { deletedAt: Date.now() })
       this.clubs = this.clubs.filter((c) => c.id !== id)
     },
+
+    // Grants/revokes manager rights for a club member.
+    async setClubAdmin(clubId: string, uid: string, isAdmin: boolean) {
+      const club = this.clubs.find((c) => c.id === clubId)
+      const current = club?.adminIds ?? []
+      const adminIds = isAdmin
+        ? Array.from(new Set([...current, uid]))
+        : current.filter((id) => id !== uid)
+      await updateDoc(doc(db, 'clubs', clubId), { adminIds })
+      if (club) club.adminIds = adminIds
+    },
   },
 })

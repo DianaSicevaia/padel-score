@@ -11,7 +11,7 @@ const props = defineProps<{
   isDeleting: boolean
   isEditing: boolean
   players: Player[]
-  isOwner: boolean
+  canManage: boolean
 }>()
 
 const emit = defineEmits<{
@@ -118,7 +118,7 @@ const formatDate = (ts: number) =>
         />
       </div>
       <span class="match-date-label">{{ formatDate(match.createdAt) }}</span>
-      <div v-if="isOwner" class="match-row-actions">
+      <div v-if="canManage" class="match-row-actions">
         <button
           class="btn-icon"
           title="Edit match"

@@ -20,8 +20,14 @@ const clubId = computed(() => (route.query.clubId as string) || undefined)
 const club = computed(() =>
   clubId.value ? clubsStore.clubs.find((c) => c.id === clubId.value) : undefined,
 )
-// Only the club owner may start a tournament for their club
-const isOwner = computed(() => !!club.value && club.value.ownerId === authStore.user?.uid)
+// Only the club owner or a delegated manager may start a tournament for
+// their club.
+const canManage = computed(
+  () =>
+    !!club.value &&
+    (club.value.ownerId === authStore.user?.uid ||
+      club.value.adminIds.includes(authStore.user?.uid ?? '')),
+)
 const myPlayer = computed(
   () => playersStore.players.find((p) => p.uid === authStore.user?.uid) ?? null,
 )
@@ -57,8 +63,8 @@ const onSaved = () => router.push(backTarget.value)
         </div>
 
         <div v-if="clubId && !club" class="notice">Loading club…</div>
-        <div v-else-if="clubId && !isOwner" class="notice">
-          Only the club owner can create a tournament for this club.
+        <div v-else-if="clubId && !canManage" class="notice">
+          Only the club owner or a manager can create a tournament for this club.
         </div>
 
         <div v-else class="panel">

@@ -12,7 +12,7 @@ const props = defineProps<{
   match: Match
   players: Player[]
   currentUid: string | null
-  isOwner: boolean
+  canManage: boolean
 }>()
 
 const canPlayNow = () => !props.match.createdBy || props.match.createdBy === props.currentUid
@@ -58,7 +58,7 @@ const formatScheduled = (ts: number) => {
 }
 
 const openEdit = () => {
-  if (!props.isOwner) return
+  if (!props.canManage) return
   const d = new Date(props.match.scheduledAt!)
   editDate.value = d.toISOString().slice(0, 10)
   editTime.value = d.toTimeString().slice(0, 5)
@@ -127,7 +127,7 @@ const confirmEdit = async () => {
           ▶ Play now
         </button>
         <span v-else class="status-badge">Only the organizer can start this match</span>
-        <template v-if="isOwner">
+        <template v-if="canManage">
           <button
             v-if="match.status !== 'cancelled'"
             class="btn-icon"
