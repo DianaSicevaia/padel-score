@@ -111,10 +111,10 @@ const onCourtBlur = () => {
     <div class="tab-row">
       <button
         type="button"
-        :class="['tab', { 'tab--active': genderPreference === 'neutral' }]"
-        @click="genderPreference = 'neutral'"
+        :class="['tab', { 'tab--active': genderPreference === 'mixed' }]"
+        @click="genderPreference = 'mixed'"
       >
-        Neutral
+        Mixed
       </button>
       <button
         type="button"

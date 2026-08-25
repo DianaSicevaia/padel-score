@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useTournamentsStore } from '@/stores/tournaments'
 import { useAuthStore } from '@/stores/auth'
+import { useClubsStore } from '@/stores/clubs'
+import { usePlayersStore } from '@/stores/players'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import MobileTopBar from '@/components/layout/MobileTopBar.vue'
 import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
@@ -12,6 +14,8 @@ const route = useRoute()
 const router = useRouter()
 const tournamentsStore = useTournamentsStore()
 const authStore = useAuthStore()
+const clubsStore = useClubsStore()
+const playersStore = usePlayersStore()
 const mobileMenuOpen = ref(false)
 
 const tournamentId = computed(() => route.params.id as string)
@@ -24,12 +28,35 @@ const canEdit = computed(
     tournament.value.createdBy === authStore.user?.uid &&
     (tournament.value.status === 'draft' || tournament.value.status === 'upcoming'),
 )
+const myClubPlayer = computed(() => {
+  if (!tournament.value?.clubId) return undefined
+  return playersStore.players.find((p) => p.uid === authStore.user?.uid)
+})
 
 let unsub: (() => void) | null = null
+let unsubPlayers: (() => void) | null = null
 onMounted(() => {
-  if (authStore.user) unsub = tournamentsStore.subscribeTournaments(authStore.user.uid)
+  if (authStore.user) {
+    unsub = tournamentsStore.subscribeTournaments(
+      authStore.user.uid,
+      clubsStore.clubs.map((c) => c.id),
+    )
+  }
 })
-onUnmounted(() => unsub?.())
+onUnmounted(() => {
+  unsub?.()
+  unsubPlayers?.()
+})
+
+// The tournament (and its clubId) only arrives once the live subscription
+// resolves, so start the club roster subscription reactively once known.
+watch(
+  () => tournament.value?.clubId,
+  (clubId) => {
+    unsubPlayers?.()
+    unsubPlayers = clubId ? playersStore.subscribePlayers(clubId) : null
+  },
+)
 
 const goBack = () => router.push(`/tournaments/${tournamentId.value}`)
 const onSaved = () => router.push(`/tournaments/${tournamentId.value}`)
@@ -61,7 +88,13 @@ const onSaved = () => router.push(`/tournaments/${tournamentId.value}`)
           </div>
 
           <div class="panel">
-            <TournamentForm :initial="tournament" @cancel="goBack" @saved="onSaved" />
+            <TournamentForm
+              :initial="tournament"
+              :my-club-player-id="myClubPlayer?.id"
+              :my-club-player-name="myClubPlayer?.name"
+              @cancel="goBack"
+              @saved="onSaved"
+            />
           </div>
         </template>
       </div>
@@ -160,6 +193,7 @@ const onSaved = () => router.push(`/tournaments/${tournamentId.value}`)
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   max-width: 640px;
+  min-height: 200px;
   padding: 4px;
 }
 

@@ -1,16 +1,40 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useClubsStore } from '@/stores/clubs'
+import { usePlayersStore } from '@/stores/players'
+import { useAuthStore } from '@/stores/auth'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import MobileTopBar from '@/components/layout/MobileTopBar.vue'
 import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
 import TournamentForm from '@/components/tournaments/TournamentForm.vue'
 
+const route = useRoute()
 const router = useRouter()
+const clubsStore = useClubsStore()
+const playersStore = usePlayersStore()
+const authStore = useAuthStore()
 const mobileMenuOpen = ref(false)
 
-const goBack = () => router.push('/tournaments')
-const onSaved = () => router.push('/tournaments')
+const clubId = computed(() => (route.query.clubId as string) || undefined)
+const club = computed(() =>
+  clubId.value ? clubsStore.clubs.find((c) => c.id === clubId.value) : undefined,
+)
+// Only the club owner may start a tournament for their club
+const isOwner = computed(() => !!club.value && club.value.ownerId === authStore.user?.uid)
+const myPlayer = computed(
+  () => playersStore.players.find((p) => p.uid === authStore.user?.uid) ?? null,
+)
+
+let unsubPlayers: (() => void) | null = null
+onMounted(() => {
+  if (clubId.value) unsubPlayers = playersStore.subscribePlayers(clubId.value)
+})
+onUnmounted(() => unsubPlayers?.())
+
+const backTarget = computed(() => (clubId.value ? `/clubs/${clubId.value}` : '/tournaments'))
+const goBack = () => router.push(backTarget.value)
+const onSaved = () => router.push(backTarget.value)
 </script>
 
 <template>
@@ -24,13 +48,28 @@ const onSaved = () => router.push('/tournaments')
         <div class="page-hdr">
           <h1 class="page-title">Create Tournament</h1>
           <p class="page-subtitle">
-            Set up an Americano tournament — invite players, add guests, and publish or save it as
-            a draft.
+            {{
+              clubId
+                ? "Set up an Americano tournament for your club — roster is picked from the club's players."
+                : 'Set up an Americano tournament — invite players, add guests, and publish or save it as a draft.'
+            }}
           </p>
         </div>
 
-        <div class="panel">
-          <TournamentForm @cancel="goBack" @saved="onSaved" />
+        <div v-if="clubId && !club" class="notice">Loading club…</div>
+        <div v-else-if="clubId && !isOwner" class="notice">
+          Only the club owner can create a tournament for this club.
+        </div>
+
+        <div v-else class="panel">
+          <TournamentForm
+            :club-id="clubId"
+            :club-players="playersStore.players"
+            :my-club-player-id="myPlayer?.id"
+            :my-club-player-name="myPlayer?.name"
+            @cancel="goBack"
+            @saved="onSaved"
+          />
         </div>
       </div>
 
@@ -86,11 +125,18 @@ const onSaved = () => router.push('/tournaments')
   margin: 0;
 }
 
+.notice {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
 .panel {
   background: var(--color-white);
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   max-width: 640px;
+  min-height: 200px;
   padding: 4px;
 }
 

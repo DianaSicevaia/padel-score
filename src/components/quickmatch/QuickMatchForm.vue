@@ -33,7 +33,7 @@ const b2 = ref<StandaloneParticipant | null>(props.initialTeamB?.[1] ?? null)
 const showSecondPlayer = ref(!!(a2.value || b2.value))
 
 const matchSets = ref<{ scoreA: string; scoreB: string }[]>([{ scoreA: '', scoreB: '' }])
-const manualWinner = ref<'A' | 'B' | null>(null)
+const manualWinner = ref<'A' | 'B' | 'draw' | null>(null)
 const showWinnerPicker = ref(false)
 const isScheduling = ref(false)
 const schedDate = ref('')
@@ -46,7 +46,7 @@ const scheduleRankMin = ref(3.0)
 const scheduleRankMax = ref(4.0)
 const scheduleCity = ref(CITIES[0]!)
 const scheduleCourt = ref('')
-const scheduleGenderPreference = ref<GenderPreference>('neutral')
+const scheduleGenderPreference = ref<GenderPreference>('mixed')
 
 const matchError = ref('')
 const submitting = ref(false)
@@ -94,14 +94,20 @@ const teamBLabel = computed(
       .join(' & ') || 'Team B',
 )
 
-const selectWinner = (team: 'A' | 'B') => {
-  manualWinner.value = team
+const selectWinner = (result: 'A' | 'B' | 'draw') => {
+  manualWinner.value = result
   showWinnerPicker.value = false
 }
 const clearWinner = () => {
   manualWinner.value = null
   showWinnerPicker.value = false
 }
+const manualWinnerText = computed(() => {
+  if (manualWinner.value === 'draw') return 'Draw'
+  if (manualWinner.value === 'A') return `${teamALabel.value} wins`
+  if (manualWinner.value === 'B') return `${teamBLabel.value} wins`
+  return ''
+})
 
 const submit = async () => {
   if (!a1.value || !b1.value) {
@@ -177,10 +183,8 @@ const submit = async () => {
       matchError.value = `Set ${i + 1}: enter valid scores.`
       return
     }
-    if (sa === sb) {
-      matchError.value = `Set ${i + 1}: scores must differ — there must be a winner.`
-      return
-    }
+    // Equal scores are allowed — an evenly tied set (or match) is resolved
+    // just below via the winner/draw picker, same as a tied set count.
     sets.push({ scoreA: sa, scoreB: sb })
   }
 
@@ -346,22 +350,23 @@ const submit = async () => {
           <button class="btn-add-set" type="button" @click="addSet">+ Add Set</button>
           <template v-if="!showWinnerPicker && !manualWinner">
             <button class="btn-decide-winner" type="button" @click="showWinnerPicker = true">
-              Decide a winner
+              Decide the result
             </button>
           </template>
           <div v-else-if="showWinnerPicker" class="winner-picker">
-            <span class="winner-picker-label">Who won?</span>
+            <span class="winner-picker-label">What was the result?</span>
             <button class="btn-team-pick" type="button" @click="selectWinner('A')">
               {{ teamALabel }}
             </button>
             <button class="btn-team-pick" type="button" @click="selectWinner('B')">
               {{ teamBLabel }}
             </button>
+            <button class="btn-team-pick btn-team-pick--draw" type="button" @click="selectWinner('draw')">
+              Draw
+            </button>
           </div>
           <div v-else class="manual-winner-display">
-            <span class="manual-winner-text"
-              >{{ manualWinner === 'A' ? teamALabel : teamBLabel }} wins</span
-            >
+            <span class="manual-winner-text">{{ manualWinnerText }}</span>
             <button class="btn-clear-winner" type="button" @click="clearWinner">×</button>
           </div>
         </div>
@@ -665,6 +670,11 @@ const submit = async () => {
   border-color: var(--color-accent);
   background: rgba(52, 33, 124, 0.05);
   color: var(--color-accent);
+}
+
+.btn-team-pick--draw {
+  border-style: dashed;
+  color: var(--color-text-subtle);
 }
 
 .manual-winner-display {

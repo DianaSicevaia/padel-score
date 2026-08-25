@@ -17,7 +17,7 @@ export function matchFormatLabel(m: Match): string {
       parts.push('Competitive · Open level')
     }
   }
-  if (m.genderPreference && m.genderPreference !== 'neutral') {
+  if (m.genderPreference && m.genderPreference !== 'mixed') {
     parts.push(m.genderPreference === 'men' ? 'Guys only' : 'Girls only')
   }
   return parts.join(' · ')

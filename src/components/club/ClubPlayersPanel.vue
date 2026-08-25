@@ -9,6 +9,7 @@ const props = defineProps<{
   clubId: string
   currentUid: string | null
   myPlayer: Player | null
+  isOwner: boolean
 }>()
 
 const playersStore = usePlayersStore()
@@ -40,7 +41,7 @@ onUnmounted(() => document.removeEventListener('mousedown', handleMenuOutsideCli
 
 // ── Add self ───────────────────────────────────────
 const addSelf = async () => {
-  if (!authStore.user || props.myPlayer) return
+  if (!props.isOwner || !authStore.user || props.myPlayer) return
   const name = authStore.user.displayName || authStore.user.email?.split('@')[0] || 'Me'
   try {
     await playersStore.createPlayer(props.clubId, name, authStore.user.uid)
@@ -56,6 +57,7 @@ const addError = ref('')
 const adding = ref(false)
 
 const openAdd = () => {
+  if (!props.isOwner) return
   showSelectPicker.value = false
   showEmailForm.value = false
   newPlayerName.value = ''
@@ -69,6 +71,7 @@ const cancelAdd = () => {
 }
 
 const submitAdd = async () => {
+  if (!props.isOwner) return
   if (!newPlayerName.value.trim()) {
     addError.value = 'Please enter a player name.'
     return
@@ -93,6 +96,7 @@ const inviteError = ref('')
 const inviting = ref(false)
 
 const openEmailForm = () => {
+  if (!props.isOwner) return
   showAddForm.value = false
   showSelectPicker.value = false
   cancelEdit()
@@ -108,6 +112,7 @@ const closeEmailForm = () => {
 }
 
 const submitEmailInvite = async () => {
+  if (!props.isOwner) return
   if (!inviteEmail.value.trim()) {
     inviteError.value = 'Enter an email address.'
     return
@@ -150,6 +155,7 @@ const isAlreadyAdded = (p: Player) => currentPlayerNames.value.has(p.name.toLowe
 const clubName = (cid: string) => clubsStore.clubs.find((c) => c.id === cid)?.name ?? 'Other Club'
 
 const openSelectPicker = async () => {
+  if (!props.isOwner) return
   showAddForm.value = false
   showEmailForm.value = false
   cancelEdit()
@@ -164,6 +170,7 @@ const openSelectPicker = async () => {
 }
 
 const handleSelectPlayer = async (p: Player) => {
+  if (!props.isOwner) return
   await playersStore.createPlayer(props.clubId, p.name)
   showSelectPicker.value = false
 }
@@ -173,6 +180,7 @@ const editingId = ref<string | null>(null)
 const editName = ref('')
 
 const startEdit = (p: Player) => {
+  if (!props.isOwner) return
   editingId.value = p.id
   editName.value = p.name
 }
@@ -183,6 +191,7 @@ const cancelEdit = () => {
 }
 
 const submitEdit = async (p: Player) => {
+  if (!props.isOwner) return
   if (!editName.value.trim()) {
     cancelEdit()
     return
@@ -199,6 +208,7 @@ const submitEdit = async (p: Player) => {
 const deletingId = ref<string | null>(null)
 
 const handleDelete = async (p: Player) => {
+  if (!props.isOwner) return
   if (!confirm(`Remove "${p.name}" from this club?`)) return
   deletingId.value = p.id
   try {
@@ -217,7 +227,7 @@ const handleDelete = async (p: Player) => {
     <div class="panel-hdr">
       <span class="panel-title">Players</span>
       <span class="count-badge">{{ playersStore.players.length }}</span>
-      <div class="hdr-actions">
+      <div v-if="isOwner" class="hdr-actions">
         <button v-if="!myPlayer" class="btn-outline" @click="addSelf">
           <svg
             width="16"
@@ -442,7 +452,7 @@ const handleDelete = async (p: Player) => {
           </div>
           <span v-if="playerStats(player)" class="player-stats">{{ playerStats(player) }}</span>
         </div>
-        <div class="player-actions">
+        <div v-if="isOwner" class="player-actions">
           <button class="btn-icon" title="Edit player" @click="startEdit(player)">
             <svg
               width="15"
@@ -552,8 +562,14 @@ const handleDelete = async (p: Player) => {
         </svg>
       </div>
       <h2 class="empty-title">No players yet</h2>
-      <p class="empty-desc">Add players to start building your club roster.</p>
-      <button class="btn-primary" @click="openAdd">
+      <p class="empty-desc">
+        {{
+          isOwner
+            ? 'Add players to start building your club roster.'
+            : 'The club owner hasn’t added any players yet.'
+        }}
+      </p>
+      <button v-if="isOwner" class="btn-primary" @click="openAdd">
         <svg
           width="16"
           height="16"
@@ -581,6 +597,7 @@ const handleDelete = async (p: Player) => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow-y: auto;
   max-width: 640px;
+  min-height: 200px;
 }
 
 .players-panel {
