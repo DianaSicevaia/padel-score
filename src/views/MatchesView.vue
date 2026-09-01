@@ -258,6 +258,7 @@ const goToClubForPlayNow = (match: Match) => {
             :key="group.club?.id ?? 'standalone'"
             :club="group.club"
             :matches="group.matches"
+            :currentUid="authStore.user?.uid ?? null"
             @club-click="(id) => router.push(`/clubs/${id}`)"
           />
         </template>

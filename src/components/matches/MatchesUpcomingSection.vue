@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { OPEN_SLOT_ID, useMatchesStore } from '@/stores/matches'
 import type { Match } from '@/stores/matches'
 import type { Club } from '@/stores/clubs'
@@ -19,6 +20,25 @@ const emit = defineEmits<{
 
 const usersStore = useUsersStore()
 const matchesStore = useMatchesStore()
+const cancellingIds = ref(new Set<string>())
+
+// Only the organizer of a standalone (no-club) match can cancel it — club
+// matches are managed from inside the club instead.
+const canCancel = (m: Match) => !m.clubId && !!props.currentUid && m.createdBy === props.currentUid
+
+const cancelMatch = async (m: Match) => {
+  if (!confirm('Cancel this scheduled match?')) return
+  const next = new Set(cancellingIds.value)
+  next.add(m.id)
+  cancellingIds.value = next
+  try {
+    await matchesStore.cancelScheduledMatch(m.id)
+  } finally {
+    const after = new Set(cancellingIds.value)
+    after.delete(m.id)
+    cancellingIds.value = after
+  }
+}
 
 const canKickFrom = (m: Match) => (p: RosterPlayer) => {
   if (m.clubId || p.isOpen || !p.linkUid) return false
@@ -102,6 +122,15 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
         <template v-for="(match, i) in group.matches" :key="match.id">
           <div v-if="i > 0" class="panel-divider"></div>
           <div class="upcoming-match-row">
+            <div v-if="canCancel(match)" class="upcoming-match-header">
+              <button
+                class="btn-cancel-match"
+                :disabled="cancellingIds.has(match.id)"
+                @click="cancelMatch(match)"
+              >
+                Cancel match
+              </button>
+            </div>
             <div class="upcoming-teams">
               <TeamRoster
                 class="upcoming-roster"
@@ -348,6 +377,37 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
 
 .btn-play-now:hover {
   background: var(--color-primary-hover-alt);
+}
+
+.upcoming-match-header {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-cancel-match {
+  background: none;
+  border: 1.5px solid var(--color-danger-alt);
+  color: var(--color-danger-alt);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.btn-cancel-match:hover:not(:disabled) {
+  background: #fdf1f0;
+}
+
+.btn-cancel-match:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {

@@ -11,8 +11,6 @@ import MobileTopBar from '@/components/layout/MobileTopBar.vue'
 import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
 import PlayerAvatar from '@/components/shared/PlayerAvatar.vue'
 import ContactIcon from '@/components/shared/ContactIcon.vue'
-import InfoTooltip from '@/components/shared/InfoTooltip.vue'
-import ifeellikeitImg from '@/assets/ifeellikeit.webp'
 
 const authStore = useAuthStore()
 const usersStore = useUsersStore()
@@ -262,10 +260,6 @@ const saveNtrp = async () => {
               </div>
               <span v-if="suggestedNtrpText" class="profile-ntrp-row">
                 <span class="profile-ntrp profile-ntrp--suggested">{{ suggestedNtrpText }}</span>
-                <InfoTooltip label="What is Suggested NTRP?">
-                  <p class="ntrp-info-text">A self-assessment. Basically:</p>
-                  <img :src="ifeellikeitImg" alt="Я так чувствую" class="ntrp-info-img" />
-                </InfoTooltip>
                 <button
                   v-if="!isEditingNtrp"
                   type="button"
@@ -900,19 +894,6 @@ const saveNtrp = async () => {
   font-size: 11px;
   color: var(--color-text-faint);
   margin: 0;
-}
-
-.ntrp-info-text {
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  color: var(--color-text);
-  margin: 0 0 8px;
-}
-
-.ntrp-info-img {
-  display: block;
-  width: 100%;
-  border-radius: 6px;
 }
 
 .btn-adjust-ntrp {

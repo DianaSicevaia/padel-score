@@ -4,8 +4,9 @@ import { useRouter } from 'vue-router'
 import { useClubsStore } from '@/stores/clubs'
 import type { Club } from '@/stores/clubs'
 
-defineProps<{
+const props = defineProps<{
   clubs: Club[]
+  currentUid: string | null
 }>()
 
 const router = useRouter()
@@ -16,11 +17,24 @@ const deletingId = ref<string | null>(null)
 const formatDate = (ts: number) =>
   new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
+const isOwner = (club: Club) => !!props.currentUid && club.ownerId === props.currentUid
+
 const handleDelete = async (club: Club) => {
   if (!confirm(`Delete "${club.name}"? This action cannot be undone.`)) return
   deletingId.value = club.id
   try {
     await clubsStore.deleteClub(club.id)
+  } finally {
+    deletingId.value = null
+  }
+}
+
+const handleLeave = async (club: Club) => {
+  if (!props.currentUid) return
+  if (!confirm(`Leave "${club.name}"?`)) return
+  deletingId.value = club.id
+  try {
+    await clubsStore.leaveClub(club.id, props.currentUid)
   } finally {
     deletingId.value = null
   }
@@ -41,6 +55,7 @@ const handleDelete = async (club: Club) => {
         <span class="club-row-meta">Created {{ formatDate(club.createdAt) }}</span>
       </div>
       <button
+        v-if="isOwner(club)"
         class="btn-icon btn-icon-danger"
         :disabled="deletingId === club.id"
         title="Delete club"
@@ -60,6 +75,29 @@ const handleDelete = async (club: Club) => {
           <path d="M3 6h18" />
           <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
           <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+        </svg>
+      </button>
+      <button
+        v-else
+        class="btn-icon btn-icon-danger"
+        :disabled="deletingId === club.id"
+        title="Leave club"
+        @click.stop="handleLeave(club)"
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
         </svg>
       </button>
     </div>

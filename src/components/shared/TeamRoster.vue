@@ -71,7 +71,7 @@ onUnmounted(() => document.removeEventListener('click', closeGuestTooltip))
             {{ p.name }}
           </component>
           <span v-if="p.rating !== undefined" class="roster-player-ntrp"
-            >NTRP {{ formatNtrp(p.rating) }} · Rating {{ p.rating }}</span
+            >NTRP {{ formatNtrp(p.rating) }} · {{ p.rating }}</span
           >
           <span v-if="p.pending" class="roster-player-badge">Invited</span>
         </div>
@@ -124,7 +124,7 @@ onUnmounted(() => document.removeEventListener('click', closeGuestTooltip))
             {{ p.name }}
           </component>
           <span v-if="p.rating !== undefined" class="roster-player-ntrp"
-            >NTRP {{ formatNtrp(p.rating) }} · Rating {{ p.rating }}</span
+            >NTRP {{ formatNtrp(p.rating) }} · {{ p.rating }}</span
           >
           <span v-if="p.pending" class="roster-player-badge">Invited</span>
         </div>
@@ -160,7 +160,12 @@ onUnmounted(() => document.removeEventListener('click', closeGuestTooltip))
   align-items: center;
   gap: 6px;
   min-width: 0;
+  width: 100%;
   position: relative;
+}
+
+.roster--end .roster-player {
+  justify-content: flex-end;
 }
 
 .roster-player > a,
@@ -193,6 +198,7 @@ onUnmounted(() => document.removeEventListener('click', closeGuestTooltip))
   overflow: hidden;
   text-overflow: ellipsis;
   text-decoration: none;
+  max-width: 100%;
 }
 
 a.roster-player-name:hover {
@@ -237,6 +243,8 @@ a.roster-player-name:hover {
   font-size: 10px;
   font-weight: 600;
   color: var(--color-text-faint);
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .roster-player-badge {

@@ -16,6 +16,9 @@ const props = defineProps<{
   initialTeamA?: StandaloneParticipant[]
   initialTeamB?: StandaloneParticipant[]
   initialMatchFormat?: MatchFormat
+  editMatchId?: string
+  initialSets?: { scoreA: number; scoreB: number }[]
+  initialWinner?: 'A' | 'B' | 'draw'
 }>()
 
 const emit = defineEmits<{
@@ -32,8 +35,12 @@ const b1 = ref<StandaloneParticipant | null>(props.initialTeamB?.[0] ?? null)
 const b2 = ref<StandaloneParticipant | null>(props.initialTeamB?.[1] ?? null)
 const showSecondPlayer = ref(!!(a2.value || b2.value))
 
-const matchSets = ref<{ scoreA: string; scoreB: string }[]>([{ scoreA: '', scoreB: '' }])
-const manualWinner = ref<'A' | 'B' | 'draw' | null>(null)
+const matchSets = ref<{ scoreA: string; scoreB: string }[]>(
+  props.initialSets?.length
+    ? props.initialSets.map((s) => ({ scoreA: String(s.scoreA), scoreB: String(s.scoreB) }))
+    : [{ scoreA: '', scoreB: '' }],
+)
+const manualWinner = ref<'A' | 'B' | 'draw' | null>(props.initialWinner ?? null)
 const showWinnerPicker = ref(false)
 const isScheduling = ref(false)
 const schedDate = ref('')
@@ -200,17 +207,30 @@ const submit = async () => {
   submitting.value = true
   matchError.value = ''
   try {
-    await matchesStore.createStandaloneMatch(
-      teamA,
-      teamB,
-      sets,
-      uid,
-      winnerOverride,
-      props.initialMatchFormat,
-    )
+    if (props.editMatchId) {
+      await matchesStore.updateStandaloneMatch(
+        props.editMatchId,
+        teamA,
+        teamB,
+        sets,
+        winnerOverride,
+        props.initialMatchFormat,
+      )
+    } else {
+      await matchesStore.createStandaloneMatch(
+        teamA,
+        teamB,
+        sets,
+        uid,
+        winnerOverride,
+        props.initialMatchFormat,
+      )
+    }
     emit('saved')
   } catch {
-    matchError.value = 'Failed to save match. Please try again.'
+    matchError.value = props.editMatchId
+      ? 'Failed to update match. Please try again.'
+      : 'Failed to save match. Please try again.'
   } finally {
     submitting.value = false
   }
@@ -266,7 +286,7 @@ const submit = async () => {
       </div>
     </div>
 
-    <div class="sched-toggle">
+    <div v-if="!editMatchId" class="sched-toggle">
       <button
         :class="['sched-tab', { 'sched-tab--active': !isScheduling }]"
         type="button"
@@ -361,7 +381,11 @@ const submit = async () => {
             <button class="btn-team-pick" type="button" @click="selectWinner('B')">
               {{ teamBLabel }}
             </button>
-            <button class="btn-team-pick btn-team-pick--draw" type="button" @click="selectWinner('draw')">
+            <button
+              class="btn-team-pick btn-team-pick--draw"
+              type="button"
+              @click="selectWinner('draw')"
+            >
               Draw
             </button>
           </div>
@@ -375,7 +399,15 @@ const submit = async () => {
 
     <div class="match-form-footer">
       <button class="btn-sm-primary" :disabled="submitting" @click="submit">
-        {{ submitting ? '…' : isScheduling ? 'Schedule Match' : 'Save Match' }}
+        {{
+          submitting
+            ? '…'
+            : editMatchId
+              ? 'Save Changes'
+              : isScheduling
+                ? 'Schedule Match'
+                : 'Save Match'
+        }}
       </button>
       <button class="btn-sm-ghost" :disabled="submitting" @click="emit('cancel')">Cancel</button>
     </div>
