@@ -1,23 +1,69 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { OPEN_SLOT_ID } from '@/stores/matches'
+import { ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { OPEN_SLOT_ID, useMatchesStore } from '@/stores/matches'
 import type { Match } from '@/stores/matches'
 import type { Club } from '@/stores/clubs'
 import { useUsersStore } from '@/stores/users'
+import { usePlayersStore } from '@/stores/players'
+import type { Player } from '@/stores/players'
 import TeamRoster from '@/components/shared/TeamRoster.vue'
 import type { RosterPlayer } from '@/components/shared/TeamRoster.vue'
 
-defineProps<{
+const props = defineProps<{
   club?: Club
   matches: Match[]
+  currentUid?: string | null
 }>()
 
 const emit = defineEmits<{
   'club-click': [clubId: string]
 }>()
 
+const router = useRouter()
 const usersStore = useUsersStore()
+const matchesStore = useMatchesStore()
+const playersStore = usePlayersStore()
 const expandedMatchIds = ref(new Set<string>())
+const deletingIds = ref(new Set<string>())
+const clubPlayersById = ref<Record<string, Player>>({})
+
+watch(
+  () => props.matches.flatMap((m) => (m.clubId ? [...m.teamA, ...m.teamB] : [])),
+  async (ids) => {
+    const missing = ids.filter((id) => !(id in clubPlayersById.value))
+    if (!missing.length) return
+    const players = await playersStore.fetchPlayersByIds(missing)
+    clubPlayersById.value = {
+      ...clubPlayersById.value,
+      ...Object.fromEntries(players.map((p) => [p.id, p])),
+    }
+  },
+  { immediate: true },
+)
+
+// Standalone (no-club) matches can be edited/deleted by whoever created
+// them — club matches are managed from inside the club instead.
+const canManageStandalone = (m: Match) =>
+  !m.clubId && !!props.currentUid && m.createdBy === props.currentUid
+
+const editMatch = (m: Match) => {
+  router.push(`/matches/new?editMatch=${m.id}`)
+}
+
+const deleteMatch = async (m: Match) => {
+  if (!confirm('Delete this match? This will undo its effect on ratings.')) return
+  const next = new Set(deletingIds.value)
+  next.add(m.id)
+  deletingIds.value = next
+  try {
+    await matchesStore.deleteStandaloneMatch(m.id)
+  } finally {
+    const after = new Set(deletingIds.value)
+    after.delete(m.id)
+    deletingIds.value = after
+  }
+}
 
 const toggleSetsDetail = (matchId: string) => {
   const next = new Set(expandedMatchIds.value)
@@ -26,14 +72,25 @@ const toggleSetsDetail = (matchId: string) => {
   expandedMatchIds.value = next
 }
 
-// Club-match team entries are club-roster ids (not uids), so photo/invite
-// lookups only resolve for standalone (no-club) matches.
 const teamRoster = (m: Match, side: 'A' | 'B'): RosterPlayer[] => {
   const ids = side === 'A' ? m.teamA : m.teamB
   const names = side === 'A' ? m.teamANames : m.teamBNames
   return ids.map((id, i) => {
     const name = names?.[i] ?? id
-    if (m.clubId) return { id, name }
+    if (m.clubId) {
+      const player = clubPlayersById.value[id]
+      const profile = player?.uid
+        ? usersStore.allUsers.find((u) => u.uid === player.uid)
+        : undefined
+      return {
+        id,
+        name,
+        photoUrl: profile?.photoUrl,
+        backgroundId: profile?.avatarBackground,
+        rating: profile?.rating,
+        linkUid: profile?.uid,
+      }
+    }
     const isOpen = id === OPEN_SLOT_ID
     const isGuest = id.startsWith('guest-')
     const profile = !isOpen && !isGuest ? usersStore.allUsers.find((u) => u.uid === id) : undefined
@@ -145,6 +202,46 @@ const formatDate = (ts: number) =>
               />
             </div>
             <span class="match-date">{{ formatDate(match.createdAt) }}</span>
+            <div v-if="canManageStandalone(match)" class="match-row-actions">
+              <button class="btn-icon" title="Edit match" @click="editMatch(match)">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+                  <path d="m15 5 4 4" />
+                </svg>
+              </button>
+              <button
+                class="btn-icon btn-icon-danger"
+                title="Delete match"
+                :disabled="deletingIds.has(match.id)"
+                @click="deleteMatch(match)"
+              >
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M3 6h18" />
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                </svg>
+              </button>
+            </div>
           </div>
           <div
             v-if="displaySets(match).length > 1 && expandedMatchIds.has(match.id)"
@@ -360,6 +457,48 @@ const formatDate = (ts: number) =>
   flex-shrink: 0;
   width: 12ch;
   text-align: right;
+}
+
+.match-row-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.match-row:hover .match-row-actions {
+  opacity: 1;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-muted);
+  transition:
+    background 0.15s,
+    color 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-icon:hover:not(:disabled) {
+  background: var(--color-bg-soft);
+  color: var(--color-text);
+}
+.btn-icon-danger:hover:not(:disabled) {
+  background: var(--color-danger-bg-hover);
+  color: var(--color-danger-text);
+}
+.btn-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {

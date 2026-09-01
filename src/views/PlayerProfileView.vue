@@ -13,8 +13,6 @@ import MobileTopBar from '@/components/layout/MobileTopBar.vue'
 import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
 import PlayerAvatar from '@/components/shared/PlayerAvatar.vue'
 import ContactIcon from '@/components/shared/ContactIcon.vue'
-import InfoTooltip from '@/components/shared/InfoTooltip.vue'
-import ifeellikeitImg from '@/assets/ifeellikeit.webp'
 
 const route = useRoute()
 const router = useRouter()
@@ -158,13 +156,7 @@ const memberSince = computed(() => {
             />
             <div class="profile-info">
               <span class="profile-name">{{ displayName }}</span>
-              <span class="profile-ntrp-row">
-                <span class="profile-ntrp profile-ntrp--suggested">{{ suggestedNtrpText }}</span>
-                <InfoTooltip label="What is Suggested NTRP?">
-                  <p class="ntrp-info-text">A self-assessment. Basically:</p>
-                  <img :src="ifeellikeitImg" alt="Я так чувствую" class="ntrp-info-img" />
-                </InfoTooltip>
-              </span>
+              <span class="profile-ntrp profile-ntrp--suggested">{{ suggestedNtrpText }}</span>
               <span class="profile-ntrp profile-ntrp--real">{{ realNtrpText }}</span>
               <span v-if="memberSince" class="profile-since">Member since {{ memberSince }}</span>
               <span v-if="globalRatingText" class="profile-rating">{{ globalRatingText }}</span>
@@ -369,19 +361,6 @@ const memberSince = computed(() => {
 
 .profile-ntrp--real {
   margin-top: 2px;
-}
-
-.ntrp-info-text {
-  font-family: 'Inter', sans-serif;
-  font-size: 12px;
-  color: var(--color-text);
-  margin: 0 0 8px;
-}
-
-.ntrp-info-img {
-  display: block;
-  width: 100%;
-  border-radius: 6px;
 }
 
 .profile-since {

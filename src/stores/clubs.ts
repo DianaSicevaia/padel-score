@@ -8,6 +8,7 @@ import {
   updateDoc,
   doc,
   arrayUnion,
+  arrayRemove,
 } from 'firebase/firestore'
 import type { Unsubscribe } from 'firebase/firestore'
 import { db } from '@/firebase'
@@ -108,9 +109,19 @@ export const useClubsStore = defineStore('clubs', {
       }
     },
 
+    // Owner-only. A plain member leaves via leaveClub instead.
     async deleteClub(id: string) {
       await updateDoc(doc(db, 'clubs', id), { deletedAt: Date.now() })
       this.clubs = this.clubs.filter((c) => c.id !== id)
+    },
+
+    // Lets a non-owner member remove themselves from a club
+    async leaveClub(clubId: string, uid: string) {
+      await updateDoc(doc(db, 'clubs', clubId), {
+        memberIds: arrayRemove(uid),
+        adminIds: arrayRemove(uid),
+      })
+      this.clubs = this.clubs.filter((c) => c.id !== clubId)
     },
 
     // Grants/revokes manager rights for a club member.

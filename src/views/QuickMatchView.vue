@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import MobileTopBar from '@/components/layout/MobileTopBar.vue'
 import QuickMatchForm from '@/components/quickmatch/QuickMatchForm.vue'
 import { useMatchesStore, OPEN_SLOT_ID } from '@/stores/matches'
-import type { StandaloneParticipant, MatchFormat } from '@/stores/matches'
+import type { StandaloneParticipant, MatchFormat, MatchSet } from '@/stores/matches'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
 const matchesStore = useMatchesStore()
+const authStore = useAuthStore()
 
 const goBack = () => router.push('/matches')
 const onSaved = () => router.push('/matches')
@@ -17,6 +19,14 @@ const onSaved = () => router.push('/matches')
 const initialTeamA = ref<StandaloneParticipant[]>([])
 const initialTeamB = ref<StandaloneParticipant[]>([])
 const initialMatchFormat = ref<MatchFormat | undefined>(undefined)
+const editMatchId = ref<string | undefined>(undefined)
+const initialSets = ref<MatchSet[] | undefined>(undefined)
+const initialWinner = ref<'A' | 'B' | 'draw' | undefined>(undefined)
+const loadError = ref('')
+
+const pageTitle = computed(() =>
+  editMatchId.value ? 'Edit match' : 'Match without a club',
+)
 
 const toParticipants = (ids: string[], names?: string[]): StandaloneParticipant[] =>
   ids.map((id, i) => ({
@@ -25,16 +35,37 @@ const toParticipants = (ids: string[], names?: string[]): StandaloneParticipant[
   }))
 
 onMounted(async () => {
-  const matchId = route.query.playNow as string | undefined
-  if (!matchId) return
-  const match = await matchesStore.fetchMatchById(matchId)
-  // Can't record a score while a slot is still unclaimed.
-  if (!match || match.hasOpenSlot) return
-  await matchesStore.cancelScheduledMatch(match.id)
-  initialTeamA.value = toParticipants(match.teamA, match.teamANames)
-  initialTeamB.value = toParticipants(match.teamB, match.teamBNames)
-  initialMatchFormat.value = match.matchFormat
-  router.replace({ path: '/matches/new' })
+  const playNowId = route.query.playNow as string | undefined
+  const editId = route.query.editMatch as string | undefined
+
+  if (playNowId) {
+    const match = await matchesStore.fetchMatchById(playNowId)
+    // Can't record a score while a slot is still unclaimed.
+    if (!match || match.hasOpenSlot) return
+    await matchesStore.cancelScheduledMatch(match.id)
+    initialTeamA.value = toParticipants(match.teamA, match.teamANames)
+    initialTeamB.value = toParticipants(match.teamB, match.teamBNames)
+    initialMatchFormat.value = match.matchFormat
+    router.replace({ path: '/matches/new' })
+    return
+  }
+
+  if (editId) {
+    const match = await matchesStore.fetchMatchById(editId)
+    if (!match || match.clubId || match.createdBy !== authStore.user?.uid) {
+      loadError.value = "This match can't be edited."
+      return
+    }
+    initialTeamA.value = toParticipants(match.teamA, match.teamANames)
+    initialTeamB.value = toParticipants(match.teamB, match.teamBNames)
+    initialMatchFormat.value = match.matchFormat
+    initialSets.value =
+      match.sets && match.sets.length > 0
+        ? match.sets
+        : [{ scoreA: match.scoreA, scoreB: match.scoreB }]
+    initialWinner.value = match.winnerTeam === 'draw' ? 'draw' : match.winnerTeam
+    editMatchId.value = editId
+  }
 })
 </script>
 
@@ -63,17 +94,25 @@ onMounted(async () => {
             </svg>
             Matches
           </button>
-          <h1 class="page-title">Match without a club</h1>
+          <h1 class="page-title">{{ pageTitle }}</h1>
           <p class="page-subtitle">
-            Record a match with players who already have a profile, or add guests who don't.
+            {{
+              editMatchId
+                ? 'Update the teams, sets, or result.'
+                : "Record a match with players who already have a profile, or add guests who don't."
+            }}
           </p>
         </div>
 
-        <div class="panel">
+        <p v-if="loadError" class="load-error">{{ loadError }}</p>
+        <div v-else class="panel">
           <QuickMatchForm
             :initialTeamA="initialTeamA"
             :initialTeamB="initialTeamB"
             :initialMatchFormat="initialMatchFormat"
+            :editMatchId="editMatchId"
+            :initialSets="initialSets"
+            :initialWinner="initialWinner"
             @cancel="goBack"
             @saved="onSaved"
           />
@@ -146,6 +185,13 @@ onMounted(async () => {
   font-family: 'Inter', sans-serif;
   font-size: 14px;
   color: var(--color-text-muted);
+  margin: 0;
+}
+
+.load-error {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  color: var(--color-danger);
   margin: 0;
 }
 

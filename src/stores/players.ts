@@ -9,6 +9,7 @@ import {
   updateDoc,
   deleteDoc,
   doc,
+  documentId,
 } from 'firebase/firestore'
 import type { Unsubscribe } from 'firebase/firestore'
 import { db } from '@/firebase'
@@ -131,6 +132,21 @@ export const usePlayersStore = defineStore('players', {
       this.selectablePlayers = snapshot.docs
         .map((d) => ({ id: d.id, ...(d.data() as Omit<Player, 'id'>) }))
         .filter((p) => !p.deletedAt)
+    },
+
+    async fetchPlayersByIds(ids: string[]): Promise<Player[]> {
+      const uniqueIds = Array.from(new Set(ids)).filter(Boolean)
+      if (!uniqueIds.length) return []
+      const chunks: string[][] = []
+      for (let i = 0; i < uniqueIds.length; i += 30) chunks.push(uniqueIds.slice(i, i + 30))
+      const results = await Promise.all(
+        chunks.map(async (chunk) => {
+          const q = query(collection(db, 'players'), where(documentId(), 'in', chunk))
+          const snapshot = await getDocs(q)
+          return snapshot.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Player, 'id'>) }))
+        }),
+      )
+      return results.flat()
     },
   },
 })

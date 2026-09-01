@@ -327,6 +327,7 @@ export const useMatchesStore = defineStore('matches', {
         createdAt: now,
         before,
         participantUids,
+        createdBy: creatorUid,
         ...(matchFormat ? { matchFormat } : {}),
       }
 
@@ -340,6 +341,158 @@ export const useMatchesStore = defineStore('matches', {
         losses: u.losses,
       }))
       if (uidUpdates.length) await usersStore.applyMatchResult(uidUpdates)
+    },
+
+    async updateStandaloneMatch(
+      matchId: string,
+      teamA: StandaloneParticipant[],
+      teamB: StandaloneParticipant[],
+      sets: MatchSet[],
+      winnerOverride?: 'A' | 'B' | 'draw',
+      matchFormat?: MatchFormat,
+    ) {
+      const match = this.standaloneMatches.find((m) => m.id === matchId)
+      if (!match) return
+
+      const usersStore = useUsersStore()
+      const isFriendly = matchFormat === 'friendly'
+
+      if (match.before?.length) {
+        const restoreUpdates = match.before.map((s) => ({
+          uid: s.playerId,
+          rating: s.rating,
+          matchesPlayed: s.matchesPlayed,
+          wins: s.wins,
+          losses: s.losses,
+        }))
+        await usersStore.applyMatchResult(restoreUpdates)
+      }
+
+      const allParticipants = [...teamA, ...teamB]
+      const uids = allParticipants.map((p) => p.uid).filter((u): u is string => !!u)
+      const userProfiles = await usersStore.getUsersByUid(uids)
+      const ratingOf = (p: StandaloneParticipant) =>
+        (p.uid ? userProfiles.find((u) => u.uid === p.uid)?.rating : undefined) ?? USER_START_RATING
+
+      const genGuestId = () =>
+        `guest-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`
+      const idOf = (p: StandaloneParticipant) => p.uid ?? genGuestId()
+
+      const teamAIds = teamA.map(idOf)
+      const teamBIds = teamB.map(idOf)
+      const teamANames = teamA.map((p) => p.name)
+      const teamBNames = teamB.map((p) => p.name)
+
+      const avgRating = (arr: StandaloneParticipant[]) =>
+        arr.reduce((s, p) => s + ratingOf(p), 0) / arr.length
+      const avgA = avgRating(teamA)
+      const avgB = avgRating(teamB)
+      const scoreA = sets.filter((s) => s.scoreA > s.scoreB).length
+      const scoreB = sets.filter((s) => s.scoreB > s.scoreA).length
+      const winnerTeam: 'A' | 'B' | 'draw' = winnerOverride ?? (scoreA > scoreB ? 'A' : 'B')
+
+      const toPseudoPlayer = (p: StandaloneParticipant): Player => {
+        const profile = p.uid ? userProfiles.find((u) => u.uid === p.uid) : undefined
+        return {
+          id: p.uid ?? '',
+          clubId: '',
+          name: p.name,
+          rating: profile?.rating ?? USER_START_RATING,
+          matchesPlayed: profile?.matchesPlayed ?? 0,
+          wins: profile?.wins ?? 0,
+          losses: profile?.losses ?? 0,
+          createdAt: 0,
+        }
+      }
+
+      const registeredA = teamA.filter((p) => p.uid).map(toPseudoPlayer)
+      const registeredB = teamB.filter((p) => p.uid).map(toPseudoPlayer)
+
+      const statsUpdates = isFriendly
+        ? []
+        : [
+            ...computeEloUpdates(registeredA, avgA, avgB, outcomeForSide(winnerTeam, 'A')),
+            ...computeEloUpdates(registeredB, avgB, avgA, outcomeForSide(winnerTeam, 'B')),
+          ]
+
+      const before: MatchPlayerSnapshot[] = isFriendly
+        ? []
+        : [...registeredA, ...registeredB].map((p) => ({
+            playerId: p.id,
+            rating: p.rating,
+            matchesPlayed: p.matchesPlayed,
+            wins: p.wins,
+            losses: p.losses,
+          }))
+
+      const participantUids = Array.from(
+        new Set([...uids, ...(match.createdBy ? [match.createdBy] : [])]),
+      )
+
+      await updateDoc(doc(db, 'matches', matchId), {
+        teamA: teamAIds,
+        teamB: teamBIds,
+        teamANames,
+        teamBNames,
+        sets,
+        scoreA,
+        scoreB,
+        winnerTeam,
+        before,
+        participantUids,
+        ...(matchFormat ? { matchFormat } : {}),
+      })
+
+      const uidUpdates = statsUpdates.map((u) => ({
+        uid: u.id,
+        rating: u.rating,
+        matchesPlayed: u.matchesPlayed,
+        wins: u.wins,
+        losses: u.losses,
+      }))
+      if (uidUpdates.length) await usersStore.applyMatchResult(uidUpdates)
+
+      const idx = this.standaloneMatches.findIndex((m) => m.id === matchId)
+      if (idx !== -1) {
+        this.standaloneMatches[idx] = {
+          ...this.standaloneMatches[idx]!,
+          teamA: teamAIds,
+          teamB: teamBIds,
+          teamANames,
+          teamBNames,
+          sets,
+          scoreA,
+          scoreB,
+          winnerTeam,
+          before,
+          participantUids,
+          ...(matchFormat ? { matchFormat } : {}),
+        }
+      }
+    },
+
+    // Deletes an already-played standalone (no-club) match and undoes the
+    // rating/W-L effect it had, mirroring deleteMatch's club-side behavior.
+    async deleteStandaloneMatch(matchId: string) {
+      const match = this.standaloneMatches.find((m) => m.id === matchId)
+      if (!match) return
+
+      const usersStore = useUsersStore()
+
+      if (match.before?.length) {
+        const restoreUpdates = match.before.map((s) => ({
+          uid: s.playerId,
+          rating: s.rating,
+          matchesPlayed: s.matchesPlayed,
+          wins: s.wins,
+          losses: s.losses,
+        }))
+        await usersStore.applyMatchResult(restoreUpdates)
+      }
+
+      await deleteDoc(doc(db, 'matches', matchId))
+      this.standaloneMatches = this.standaloneMatches.filter((m) => m.id !== matchId)
+      this.openMatches = this.openMatches.filter((m) => m.id !== matchId)
     },
 
     async createMatch(

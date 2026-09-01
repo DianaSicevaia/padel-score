@@ -1,8 +1,11 @@
 <script setup lang="ts">
+import { ref, watch } from 'vue'
 import { OPEN_SLOT_ID, useMatchesStore } from '@/stores/matches'
 import type { Match } from '@/stores/matches'
 import type { Club } from '@/stores/clubs'
 import { useUsersStore } from '@/stores/users'
+import { usePlayersStore } from '@/stores/players'
+import type { Player } from '@/stores/players'
 import TeamRoster from '@/components/shared/TeamRoster.vue'
 import type { RosterPlayer } from '@/components/shared/TeamRoster.vue'
 import { matchFormatLabel, matchLocationLabel } from '@/utils/matchDetails'
@@ -19,6 +22,44 @@ const emit = defineEmits<{
 
 const usersStore = useUsersStore()
 const matchesStore = useMatchesStore()
+const playersStore = usePlayersStore()
+const cancellingIds = ref(new Set<string>())
+const clubPlayersById = ref<Record<string, Player>>({})
+
+watch(
+  () =>
+    props.groups.flatMap((g) =>
+      g.matches.flatMap((m) => (m.clubId ? [...m.teamA, ...m.teamB] : [])),
+    ),
+  async (ids) => {
+    const missing = ids.filter((id) => !(id in clubPlayersById.value))
+    if (!missing.length) return
+    const players = await playersStore.fetchPlayersByIds(missing)
+    clubPlayersById.value = {
+      ...clubPlayersById.value,
+      ...Object.fromEntries(players.map((p) => [p.id, p])),
+    }
+  },
+  { immediate: true },
+)
+
+// Only the organizer of a standalone (no-club) match can cancel it — club
+// matches are managed from inside the club instead.
+const canCancel = (m: Match) => !m.clubId && !!props.currentUid && m.createdBy === props.currentUid
+
+const cancelMatch = async (m: Match) => {
+  if (!confirm('Cancel this scheduled match?')) return
+  const next = new Set(cancellingIds.value)
+  next.add(m.id)
+  cancellingIds.value = next
+  try {
+    await matchesStore.cancelScheduledMatch(m.id)
+  } finally {
+    const after = new Set(cancellingIds.value)
+    after.delete(m.id)
+    cancellingIds.value = after
+  }
+}
 
 const canKickFrom = (m: Match) => (p: RosterPlayer) => {
   if (m.clubId || p.isOpen || !p.linkUid) return false
@@ -36,15 +77,27 @@ const kick = (matchId: string, p: RosterPlayer) => {
   matchesStore.removeFromSlot(matchId, p.linkUid, props.currentUid)
 }
 
-// Club-match team entries are club-roster ids (not uids), so photo/invite
-// lookups only resolve for standalone (no-club) matches.
 const teamRoster = (m: Match, side: 'A' | 'B'): RosterPlayer[] => {
   const ids = side === 'A' ? m.teamA : m.teamB
   const names = side === 'A' ? m.teamANames : m.teamBNames
   return ids.map((id, i) => {
     const name = names?.[i] ?? id
     const isOpen = id === OPEN_SLOT_ID
-    if (m.clubId) return { id, name, isOpen }
+    if (m.clubId) {
+      const player = clubPlayersById.value[id]
+      const profile = player?.uid
+        ? usersStore.allUsers.find((u) => u.uid === player.uid)
+        : undefined
+      return {
+        id,
+        name,
+        photoUrl: profile?.photoUrl,
+        backgroundId: profile?.avatarBackground,
+        rating: profile?.rating,
+        linkUid: profile?.uid,
+        isOpen: false,
+      }
+    }
     const isGuest = id.startsWith('guest-')
     const profile = !isOpen && !isGuest ? usersStore.allUsers.find((u) => u.uid === id) : undefined
     const pending = !!m.pendingUids?.includes(id)
@@ -102,6 +155,15 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
         <template v-for="(match, i) in group.matches" :key="match.id">
           <div v-if="i > 0" class="panel-divider"></div>
           <div class="upcoming-match-row">
+            <div v-if="canCancel(match)" class="upcoming-match-header">
+              <button
+                class="btn-cancel-match"
+                :disabled="cancellingIds.has(match.id)"
+                @click="cancelMatch(match)"
+              >
+                Cancel match
+              </button>
+            </div>
             <div class="upcoming-teams">
               <TeamRoster
                 class="upcoming-roster"
@@ -348,6 +410,37 @@ const canPlayNow = (m: Match) => !m.createdBy || m.createdBy === props.currentUi
 
 .btn-play-now:hover {
   background: var(--color-primary-hover-alt);
+}
+
+.upcoming-match-header {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-cancel-match {
+  background: none;
+  border: 1.5px solid var(--color-danger-alt);
+  color: var(--color-danger-alt);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.btn-cancel-match:hover:not(:disabled) {
+  background: #fdf1f0;
+}
+
+.btn-cancel-match:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 @media (max-width: 768px) {

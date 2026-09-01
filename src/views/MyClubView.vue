@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useClubsStore } from '@/stores/clubs'
+import { useAuthStore } from '@/stores/auth'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import MobileTopBar from '@/components/layout/MobileTopBar.vue'
 import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
@@ -11,6 +12,7 @@ import ClubListPanel from '@/components/myclub/ClubListPanel.vue'
 const router = useRouter()
 const route = useRoute()
 const clubsStore = useClubsStore()
+const authStore = useAuthStore()
 
 const showForm = ref(false)
 const mobileMenuOpen = ref(false)
@@ -114,7 +116,11 @@ onMounted(() => {
           </div>
 
           <!-- Club list -->
-          <ClubListPanel v-if="clubsStore.clubs.length > 0" :clubs="clubsStore.clubs" />
+          <ClubListPanel
+            v-if="clubsStore.clubs.length > 0"
+            :clubs="clubsStore.clubs"
+            :currentUid="authStore.user?.uid ?? null"
+          />
         </template>
       </div>
 
