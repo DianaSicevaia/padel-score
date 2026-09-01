@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { OPEN_SLOT_ID, useMatchesStore } from '@/stores/matches'
 import type { Match } from '@/stores/matches'
 import type { Club } from '@/stores/clubs'
 import { useUsersStore } from '@/stores/users'
+import { usePlayersStore } from '@/stores/players'
+import type { Player } from '@/stores/players'
 import TeamRoster from '@/components/shared/TeamRoster.vue'
 import type { RosterPlayer } from '@/components/shared/TeamRoster.vue'
 
@@ -21,8 +23,24 @@ const emit = defineEmits<{
 const router = useRouter()
 const usersStore = useUsersStore()
 const matchesStore = useMatchesStore()
+const playersStore = usePlayersStore()
 const expandedMatchIds = ref(new Set<string>())
 const deletingIds = ref(new Set<string>())
+const clubPlayersById = ref<Record<string, Player>>({})
+
+watch(
+  () => props.matches.flatMap((m) => (m.clubId ? [...m.teamA, ...m.teamB] : [])),
+  async (ids) => {
+    const missing = ids.filter((id) => !(id in clubPlayersById.value))
+    if (!missing.length) return
+    const players = await playersStore.fetchPlayersByIds(missing)
+    clubPlayersById.value = {
+      ...clubPlayersById.value,
+      ...Object.fromEntries(players.map((p) => [p.id, p])),
+    }
+  },
+  { immediate: true },
+)
 
 // Standalone (no-club) matches can be edited/deleted by whoever created
 // them — club matches are managed from inside the club instead.
@@ -54,14 +72,25 @@ const toggleSetsDetail = (matchId: string) => {
   expandedMatchIds.value = next
 }
 
-// Club-match team entries are club-roster ids (not uids), so photo/invite
-// lookups only resolve for standalone (no-club) matches.
 const teamRoster = (m: Match, side: 'A' | 'B'): RosterPlayer[] => {
   const ids = side === 'A' ? m.teamA : m.teamB
   const names = side === 'A' ? m.teamANames : m.teamBNames
   return ids.map((id, i) => {
     const name = names?.[i] ?? id
-    if (m.clubId) return { id, name }
+    if (m.clubId) {
+      const player = clubPlayersById.value[id]
+      const profile = player?.uid
+        ? usersStore.allUsers.find((u) => u.uid === player.uid)
+        : undefined
+      return {
+        id,
+        name,
+        photoUrl: profile?.photoUrl,
+        backgroundId: profile?.avatarBackground,
+        rating: profile?.rating,
+        linkUid: profile?.uid,
+      }
+    }
     const isOpen = id === OPEN_SLOT_ID
     const isGuest = id.startsWith('guest-')
     const profile = !isOpen && !isGuest ? usersStore.allUsers.find((u) => u.uid === id) : undefined
