@@ -71,7 +71,7 @@ onUnmounted(() => document.removeEventListener('click', closeGuestTooltip))
             {{ p.name }}
           </component>
           <span v-if="p.rating !== undefined" class="roster-player-ntrp"
-            >NTRP {{ formatNtrp(p.rating) }}</span
+            >NTRP {{ formatNtrp(p.rating) }} · Rating {{ p.rating }}</span
           >
           <span v-if="p.pending" class="roster-player-badge">Invited</span>
         </div>
@@ -124,7 +124,7 @@ onUnmounted(() => document.removeEventListener('click', closeGuestTooltip))
             {{ p.name }}
           </component>
           <span v-if="p.rating !== undefined" class="roster-player-ntrp"
-            >NTRP {{ formatNtrp(p.rating) }}</span
+            >NTRP {{ formatNtrp(p.rating) }} · Rating {{ p.rating }}</span
           >
           <span v-if="p.pending" class="roster-player-badge">Invited</span>
         </div>

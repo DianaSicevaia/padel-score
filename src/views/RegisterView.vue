@@ -9,7 +9,7 @@ const router = useRouter()
 
 const email = ref('')
 const password = ref('')
-const ntrp = ref(3.5)
+const ntrp = ref(2.5)
 const error = ref('')
 
 const handleError = (e: unknown) => {

@@ -11,6 +11,8 @@ import MobileTopBar from '@/components/layout/MobileTopBar.vue'
 import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
 import PlayerAvatar from '@/components/shared/PlayerAvatar.vue'
 import ContactIcon from '@/components/shared/ContactIcon.vue'
+import InfoTooltip from '@/components/shared/InfoTooltip.vue'
+import ifeellikeitImg from '@/assets/ifeellikeit.webp'
 
 const authStore = useAuthStore()
 const usersStore = useUsersStore()
@@ -34,8 +36,14 @@ const globalRatingText = computed(() => {
     : `Rating ${p.rating} · no standalone matches yet`
 })
 
-const ntrpText = computed(() =>
-  globalProfile.value ? `NTRP ${formatNtrp(globalProfile.value.rating)}` : '',
+const suggestedNtrpText = computed(() => {
+  const p = globalProfile.value
+  if (!p) return ''
+  return `Suggested NTRP ${formatNtrp(p.suggestedRating ?? p.rating)}`
+})
+
+const realNtrpText = computed(() =>
+  globalProfile.value ? `Platform calculated NTRP ${formatNtrp(globalProfile.value.rating)}` : '',
 )
 
 const preferredSideLabel = (side?: PreferredSide) => {
@@ -149,12 +157,13 @@ const saveProfile = async () => {
 // action (e.g. "I've kept playing elsewhere and my level has moved since I
 // registered"), never as a side effect of saving an unrelated field.
 const isEditingNtrp = ref(false)
-const editNtrp = ref(3.5)
+const editNtrp = ref(2.5)
 const savingNtrp = ref(false)
 const ntrpError = ref('')
 
 const startEditNtrp = () => {
-  editNtrp.value = globalProfile.value ? Number(formatNtrp(globalProfile.value.rating)) : 3.5
+  const p = globalProfile.value
+  editNtrp.value = p ? Number(formatNtrp(p.suggestedRating ?? p.rating)) : 2.5
   ntrpError.value = ''
   isEditingNtrp.value = true
 }
@@ -168,7 +177,7 @@ const saveNtrp = async () => {
   savingNtrp.value = true
   ntrpError.value = ''
   try {
-    await usersStore.updateRating(authStore.user.uid, ntrpToRating(editNtrp.value))
+    await usersStore.updateSuggestedRating(authStore.user.uid, ntrpToRating(editNtrp.value))
     isEditingNtrp.value = false
   } catch {
     ntrpError.value = 'Failed to update your rating. Please try again.'
@@ -251,8 +260,12 @@ const saveNtrp = async () => {
                     : 'visible to your club members only'
                 }}</span>
               </div>
-              <span v-if="ntrpText" class="profile-ntrp-row">
-                <span class="profile-ntrp">{{ ntrpText }}</span>
+              <span v-if="suggestedNtrpText" class="profile-ntrp-row">
+                <span class="profile-ntrp profile-ntrp--suggested">{{ suggestedNtrpText }}</span>
+                <InfoTooltip label="What is Suggested NTRP?">
+                  <p class="ntrp-info-text">A self-assessment. Basically:</p>
+                  <img :src="ifeellikeitImg" alt="Я так чувствую" class="ntrp-info-img" />
+                </InfoTooltip>
                 <button
                   v-if="!isEditingNtrp"
                   type="button"
@@ -278,6 +291,11 @@ const saveNtrp = async () => {
                 </button>
               </div>
               <p v-if="ntrpError" class="add-error">{{ ntrpError }}</p>
+              <p class="ntrp-suggested-hint">Self-reported — set by the player, not verified.</p>
+              <span v-if="realNtrpText" class="profile-ntrp profile-ntrp--real">{{
+                realNtrpText
+              }}</span>
+              <p class="ntrp-suggested-hint">Computed from your match &amp; tournament results.</p>
               <span v-if="globalRatingText" class="profile-rating">{{ globalRatingText }}</span>
               <span v-if="globalProfile" class="profile-rating-hint"
                 >Based on matches played without a club</span
@@ -866,6 +884,35 @@ const saveNtrp = async () => {
   font-size: 13px;
   font-weight: 700;
   color: var(--color-accent);
+}
+
+.profile-ntrp--suggested {
+  color: #b5720a;
+}
+
+.profile-ntrp--real {
+  color: var(--color-accent);
+  margin-top: 8px;
+}
+
+.ntrp-suggested-hint {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--color-text-faint);
+  margin: 0;
+}
+
+.ntrp-info-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--color-text);
+  margin: 0 0 8px;
+}
+
+.ntrp-info-img {
+  display: block;
+  width: 100%;
+  border-radius: 6px;
 }
 
 .btn-adjust-ntrp {

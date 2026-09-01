@@ -452,7 +452,7 @@ const handleDelete = async (p: Player) => {
               <div class="player-info">
                 <span class="player-name">{{ nameFor(u) }}</span>
                 <span class="player-stats"
-                  >NTRP {{ formatNtrp(u.rating)
+                  >NTRP {{ formatNtrp(u.rating) }} · Rating {{ u.rating
                   }}<template v-if="u.email && !u.emailHidden"> · {{ u.email }}</template></span
                 >
               </div>

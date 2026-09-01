@@ -63,7 +63,7 @@ const optionLabel = (p: Player) => {
   const isMe = p.uid && p.uid === props.players.find((pl) => pl.id === props.myPlayerId)?.uid
   const base = isMe ? `${p.name} (You)` : p.name
   const rating = p.uid ? usersStore.allUsers.find((u) => u.uid === p.uid)?.rating : undefined
-  return rating !== undefined ? `${base} · NTRP ${formatNtrp(rating)}` : base
+  return rating !== undefined ? `${base} · NTRP ${formatNtrp(rating)} · Rating ${rating}` : base
 }
 
 const teamALabel = computed(() => {

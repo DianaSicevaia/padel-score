@@ -115,7 +115,7 @@ const onBlur = () => {
         >
           <span class="option-row">
             <span class="option-name">{{ u.displayName || (u.emailHidden ? 'Player' : u.email) }}</span>
-            <span class="option-ntrp">NTRP {{ formatNtrp(u.rating) }}</span>
+            <span class="option-ntrp">NTRP {{ formatNtrp(u.rating) }} · Rating {{ u.rating }}</span>
           </span>
           <span v-if="u.displayName && u.email && !u.emailHidden" class="option-email">{{
             u.email

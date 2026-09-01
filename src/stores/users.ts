@@ -14,6 +14,7 @@ export interface UserProfile {
   displayName?: string | null
   photoUrl?: string | null
   rating: number
+  suggestedRating?: number
   matchesPlayed: number
   wins: number
   losses: number
@@ -33,6 +34,7 @@ interface RawUserData {
   displayName?: string | null
   photoUrl?: string | null
   rating?: number
+  suggestedRating?: number | null
   matchesPlayed?: number
   wins?: number
   losses?: number
@@ -56,6 +58,7 @@ function normalizeUser(uid: string, data: RawUserData): UserProfile {
     displayName: data.displayName,
     photoUrl: data.photoUrl,
     rating: data.rating ?? START_RATING,
+    suggestedRating: data.suggestedRating ?? undefined,
     matchesPlayed: data.matchesPlayed ?? 0,
     wins: data.wins ?? 0,
     losses: data.losses ?? 0,
@@ -215,14 +218,10 @@ export const useUsersStore = defineStore('users', {
       }
     },
 
-    // Manual correction for a player's starting NTRP self-assessment
-    // for cases when they've kept playing outside the app for a while and their
-    // level has clearly moved since they registered. Distinct from applyMatchResult,
-    // which tracks results earned through matches played here.
-    async updateRating(uid: string, rating: number) {
-      await setDoc(doc(db, 'users', uid), { rating }, { merge: true })
+    async updateSuggestedRating(uid: string, suggestedRating: number) {
+      await setDoc(doc(db, 'users', uid), { suggestedRating }, { merge: true })
       const idx = this.allUsers.findIndex((u) => u.uid === uid)
-      if (idx !== -1) this.allUsers[idx] = { ...this.allUsers[idx]!, rating }
+      if (idx !== -1) this.allUsers[idx] = { ...this.allUsers[idx]!, suggestedRating }
     },
 
     async applyMatchResult(
