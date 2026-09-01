@@ -9,7 +9,7 @@ const router = useRouter()
 
 const email = ref('')
 const password = ref('')
-const ntrp = ref(3.5)
+const ntrp = ref(2.5)
 const error = ref('')
 
 const handleError = (e: unknown) => {
@@ -33,8 +33,8 @@ const register = async () => {
 const loginWithGoogle = async () => {
   try {
     error.value = ''
-    await authStore.loginWithGoogle()
-    await router.push('/dashboard')
+    const { isNewUser } = await authStore.loginWithGoogle()
+    await router.push(isNewUser ? '/welcome' : '/dashboard')
   } catch (e: unknown) {
     handleError(e)
   }

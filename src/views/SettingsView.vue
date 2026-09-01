@@ -3,13 +3,16 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useUsersStore } from '@/stores/users'
-import type { PreferredSide, Gender } from '@/stores/users'
+import type { PreferredSide, Gender, ContactVisibility } from '@/stores/users'
 import { AVATAR_BACKGROUNDS } from '@/utils/avatarBackgrounds'
 import { NTRP_OPTIONS, formatNtrp, ntrpToRating } from '@/utils/ntrp'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import MobileTopBar from '@/components/layout/MobileTopBar.vue'
 import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
 import PlayerAvatar from '@/components/shared/PlayerAvatar.vue'
+import ContactIcon from '@/components/shared/ContactIcon.vue'
+import InfoTooltip from '@/components/shared/InfoTooltip.vue'
+import ifeellikeitImg from '@/assets/ifeellikeit.webp'
 
 const authStore = useAuthStore()
 const usersStore = useUsersStore()
@@ -33,8 +36,14 @@ const globalRatingText = computed(() => {
     : `Rating ${p.rating} · no standalone matches yet`
 })
 
-const ntrpText = computed(() =>
-  globalProfile.value ? `NTRP ${formatNtrp(globalProfile.value.rating)}` : '',
+const suggestedNtrpText = computed(() => {
+  const p = globalProfile.value
+  if (!p) return ''
+  return `Suggested NTRP ${formatNtrp(p.suggestedRating ?? p.rating)}`
+})
+
+const realNtrpText = computed(() =>
+  globalProfile.value ? `Platform calculated NTRP ${formatNtrp(globalProfile.value.rating)}` : '',
 )
 
 const preferredSideLabel = (side?: PreferredSide) => {
@@ -55,6 +64,13 @@ const genderLabel = (g?: Gender) => {
 }
 
 const genderText = computed(() => genderLabel(globalProfile.value?.gender))
+
+const hasContactInfo = computed(
+  () =>
+    !!globalProfile.value?.contactTelegram ||
+    !!globalProfile.value?.contactWhatsapp ||
+    !!globalProfile.value?.contactPhone,
+)
 
 const displayName = computed(() => {
   if (!user.value) return 'Player'
@@ -78,6 +94,11 @@ const editName = ref('')
 const editPreferredSide = ref<PreferredSide | null>(null)
 const editAvatarBackground = ref<string | null>(null)
 const editGender = ref<Gender | null>(null)
+const editEmailHidden = ref(false)
+const editContactTelegram = ref('')
+const editContactWhatsapp = ref('')
+const editContactPhone = ref('')
+const editContactVisibility = ref<ContactVisibility>('private')
 const saving = ref(false)
 const saveError = ref('')
 
@@ -86,6 +107,11 @@ const startEdit = () => {
   editPreferredSide.value = globalProfile.value?.preferredSide ?? null
   editAvatarBackground.value = globalProfile.value?.avatarBackground ?? null
   editGender.value = globalProfile.value?.gender ?? null
+  editEmailHidden.value = globalProfile.value?.emailHidden ?? false
+  editContactTelegram.value = globalProfile.value?.contactTelegram ?? ''
+  editContactWhatsapp.value = globalProfile.value?.contactWhatsapp ?? ''
+  editContactPhone.value = globalProfile.value?.contactPhone ?? ''
+  editContactVisibility.value = globalProfile.value?.contactVisibility ?? 'private'
   saveError.value = ''
   isEditing.value = true
 }
@@ -108,6 +134,13 @@ const saveProfile = async () => {
       usersStore.updatePreferredSide(authStore.user.uid, editPreferredSide.value),
       usersStore.updateAvatarBackground(authStore.user.uid, editAvatarBackground.value),
       usersStore.updateGender(authStore.user.uid, editGender.value),
+      usersStore.updateEmailHidden(authStore.user.uid, editEmailHidden.value),
+      usersStore.updateContactInfo(authStore.user.uid, {
+        telegram: editContactTelegram.value,
+        whatsapp: editContactWhatsapp.value,
+        phone: editContactPhone.value,
+        visibility: editContactVisibility.value,
+      }),
     ])
     // usersStore.allUsers (and so globalProfile) updates live once the write lands.
     isEditing.value = false
@@ -124,12 +157,13 @@ const saveProfile = async () => {
 // action (e.g. "I've kept playing elsewhere and my level has moved since I
 // registered"), never as a side effect of saving an unrelated field.
 const isEditingNtrp = ref(false)
-const editNtrp = ref(3.5)
+const editNtrp = ref(2.5)
 const savingNtrp = ref(false)
 const ntrpError = ref('')
 
 const startEditNtrp = () => {
-  editNtrp.value = globalProfile.value ? Number(formatNtrp(globalProfile.value.rating)) : 3.5
+  const p = globalProfile.value
+  editNtrp.value = p ? Number(formatNtrp(p.suggestedRating ?? p.rating)) : 2.5
   ntrpError.value = ''
   isEditingNtrp.value = true
 }
@@ -143,7 +177,7 @@ const saveNtrp = async () => {
   savingNtrp.value = true
   ntrpError.value = ''
   try {
-    await usersStore.updateRating(authStore.user.uid, ntrpToRating(editNtrp.value))
+    await usersStore.updateSuggestedRating(authStore.user.uid, ntrpToRating(editNtrp.value))
     isEditingNtrp.value = false
   } catch {
     ntrpError.value = 'Failed to update your rating. Please try again.'
@@ -201,10 +235,37 @@ const saveNtrp = async () => {
             />
             <div class="profile-info">
               <span class="profile-name">{{ displayName }}</span>
-              <span class="profile-email">{{ user?.email ?? '—' }}</span>
+              <span class="profile-email"
+                >{{ user?.email ?? '—' }}
+                <span v-if="globalProfile?.emailHidden" class="hidden-tag">hidden from others</span>
+              </span>
               <span v-if="memberSince" class="profile-since">Member since {{ memberSince }}</span>
-              <span v-if="ntrpText" class="profile-ntrp-row">
-                <span class="profile-ntrp">{{ ntrpText }}</span>
+              <div v-if="hasContactInfo" class="contact-summary">
+                <span v-if="globalProfile?.contactTelegram" class="contact-line"
+                  ><ContactIcon type="telegram" :size="14" />{{
+                    globalProfile.contactTelegram
+                  }}</span
+                >
+                <span v-if="globalProfile?.contactWhatsapp" class="contact-line"
+                  ><ContactIcon type="whatsapp" :size="14" />{{
+                    globalProfile.contactWhatsapp
+                  }}</span
+                >
+                <span v-if="globalProfile?.contactPhone" class="contact-line"
+                  ><ContactIcon type="phone" :size="14" />{{ globalProfile.contactPhone }}</span
+                >
+                <span class="hidden-tag">{{
+                  globalProfile?.contactVisibility === 'public'
+                    ? 'visible to everyone'
+                    : 'visible to your club members only'
+                }}</span>
+              </div>
+              <span v-if="suggestedNtrpText" class="profile-ntrp-row">
+                <span class="profile-ntrp profile-ntrp--suggested">{{ suggestedNtrpText }}</span>
+                <InfoTooltip label="What is Suggested NTRP?">
+                  <p class="ntrp-info-text">A self-assessment. Basically:</p>
+                  <img :src="ifeellikeitImg" alt="Я так чувствую" class="ntrp-info-img" />
+                </InfoTooltip>
                 <button
                   v-if="!isEditingNtrp"
                   type="button"
@@ -230,6 +291,11 @@ const saveNtrp = async () => {
                 </button>
               </div>
               <p v-if="ntrpError" class="add-error">{{ ntrpError }}</p>
+              <p class="ntrp-suggested-hint">Self-reported — set by the player, not verified.</p>
+              <span v-if="realNtrpText" class="profile-ntrp profile-ntrp--real">{{
+                realNtrpText
+              }}</span>
+              <p class="ntrp-suggested-hint">Computed from your match &amp; tournament results.</p>
               <span v-if="globalRatingText" class="profile-rating">{{ globalRatingText }}</span>
               <span v-if="globalProfile" class="profile-rating-hint"
                 >Based on matches played without a club</span
@@ -272,6 +338,11 @@ const saveNtrp = async () => {
                 placeholder="Your name"
                 @keyup.enter="saveProfile"
               />
+
+              <label class="checkbox-row field-label--spaced">
+                <input type="checkbox" v-model="editEmailHidden" />
+                Hide my email from other players
+              </label>
 
               <label class="field-label field-label--spaced">Preferred side</label>
               <div class="side-toggle">
@@ -322,6 +393,60 @@ const saveNtrp = async () => {
                   Not specified
                 </button>
               </div>
+
+              <label class="field-label field-label--spaced"
+                >Contact info <span class="optional-tag">optional</span></label
+              >
+              <div class="field-input-icon-wrap">
+                <ContactIcon type="telegram" :size="16" class="field-input-icon" />
+                <input
+                  v-model="editContactTelegram"
+                  class="field-input field-input--icon"
+                  maxlength="60"
+                  placeholder="Telegram — e.g. @username"
+                />
+              </div>
+              <div class="field-input-icon-wrap">
+                <ContactIcon type="whatsapp" :size="16" class="field-input-icon" />
+                <input
+                  v-model="editContactWhatsapp"
+                  class="field-input field-input--icon"
+                  maxlength="60"
+                  placeholder="WhatsApp number"
+                />
+              </div>
+              <div class="field-input-icon-wrap">
+                <ContactIcon type="phone" :size="16" class="field-input-icon" />
+                <input
+                  v-model="editContactPhone"
+                  class="field-input field-input--icon"
+                  maxlength="30"
+                  placeholder="Phone number"
+                />
+              </div>
+              <div class="side-toggle">
+                <button
+                  type="button"
+                  :class="['side-tab', { 'side-tab--active': editContactVisibility === 'private' }]"
+                  @click="editContactVisibility = 'private'"
+                >
+                  Club members only
+                </button>
+                <button
+                  type="button"
+                  :class="['side-tab', { 'side-tab--active': editContactVisibility === 'public' }]"
+                  @click="editContactVisibility = 'public'"
+                >
+                  Public
+                </button>
+              </div>
+              <p class="field-hint">
+                {{
+                  editContactVisibility === 'public'
+                    ? 'Anyone can see this contact info on your profile.'
+                    : 'Only players who share a club with you can see this contact info.'
+                }}
+              </p>
 
               <p v-if="saveError" class="add-error">{{ saveError }}</p>
               <div class="edit-actions">
@@ -410,7 +535,6 @@ const saveNtrp = async () => {
   background: var(--color-white);
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
   max-width: 480px;
 }
 
@@ -554,6 +678,87 @@ const saveNtrp = async () => {
   margin-top: 6px;
 }
 
+.optional-tag {
+  color: var(--color-text-faint);
+  font-weight: 500;
+  text-transform: none;
+}
+
+.field-hint {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.checkbox-row input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.hidden-tag {
+  font-family: 'Geist Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: var(--color-bg-muted);
+  border-radius: 4px;
+  padding: 1px 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.contact-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.contact-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--color-text-strong);
+}
+
+.contact-line svg {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+}
+
+.field-input-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.field-input-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+.field-input--icon {
+  padding-left: 36px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .side-toggle {
   display: flex;
   gap: 4px;
@@ -679,6 +884,35 @@ const saveNtrp = async () => {
   font-size: 13px;
   font-weight: 700;
   color: var(--color-accent);
+}
+
+.profile-ntrp--suggested {
+  color: #b5720a;
+}
+
+.profile-ntrp--real {
+  color: var(--color-accent);
+  margin-top: 8px;
+}
+
+.ntrp-suggested-hint {
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  color: var(--color-text-faint);
+  margin: 0;
+}
+
+.ntrp-info-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  color: var(--color-text);
+  margin: 0 0 8px;
+}
+
+.ntrp-info-img {
+  display: block;
+  width: 100%;
+  border-radius: 6px;
 }
 
 .btn-adjust-ntrp {

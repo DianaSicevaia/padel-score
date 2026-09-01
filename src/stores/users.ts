@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { watch } from 'vue'
-import { collection, onSnapshot, doc, updateDoc, setDoc } from 'firebase/firestore'
+import { collection, onSnapshot, doc, updateDoc, setDoc, deleteField } from 'firebase/firestore'
 import type { Unsubscribe } from 'firebase/firestore'
 import { db } from '@/firebase'
 
 export type PreferredSide = 'left' | 'right'
 export type Gender = 'male' | 'female'
+export type ContactVisibility = 'public' | 'private'
 
 export interface UserProfile {
   uid: string
@@ -13,6 +14,7 @@ export interface UserProfile {
   displayName?: string | null
   photoUrl?: string | null
   rating: number
+  suggestedRating?: number
   matchesPlayed: number
   wins: number
   losses: number
@@ -20,6 +22,11 @@ export interface UserProfile {
   preferredSide?: PreferredSide
   avatarBackground?: string
   gender?: Gender
+  emailHidden?: boolean
+  contactTelegram?: string
+  contactWhatsapp?: string
+  contactPhone?: string
+  contactVisibility?: ContactVisibility
 }
 
 interface RawUserData {
@@ -27,6 +34,7 @@ interface RawUserData {
   displayName?: string | null
   photoUrl?: string | null
   rating?: number
+  suggestedRating?: number | null
   matchesPlayed?: number
   wins?: number
   losses?: number
@@ -34,6 +42,11 @@ interface RawUserData {
   preferredSide?: PreferredSide | null
   avatarBackground?: string | null
   gender?: Gender | null
+  emailHidden?: boolean | null
+  contactTelegram?: string | null
+  contactWhatsapp?: string | null
+  contactPhone?: string | null
+  contactVisibility?: ContactVisibility | null
 }
 
 export const START_RATING = 1000
@@ -45,6 +58,7 @@ function normalizeUser(uid: string, data: RawUserData): UserProfile {
     displayName: data.displayName,
     photoUrl: data.photoUrl,
     rating: data.rating ?? START_RATING,
+    suggestedRating: data.suggestedRating ?? undefined,
     matchesPlayed: data.matchesPlayed ?? 0,
     wins: data.wins ?? 0,
     losses: data.losses ?? 0,
@@ -52,6 +66,11 @@ function normalizeUser(uid: string, data: RawUserData): UserProfile {
     preferredSide: data.preferredSide ?? undefined,
     avatarBackground: data.avatarBackground ?? undefined,
     gender: data.gender ?? undefined,
+    emailHidden: data.emailHidden ?? undefined,
+    contactTelegram: data.contactTelegram ?? undefined,
+    contactWhatsapp: data.contactWhatsapp ?? undefined,
+    contactPhone: data.contactPhone ?? undefined,
+    contactVisibility: data.contactVisibility ?? undefined,
   }
 }
 
@@ -159,14 +178,50 @@ export const useUsersStore = defineStore('users', {
         this.allUsers[idx] = { ...this.allUsers[idx]!, avatarBackground: backgroundId ?? undefined }
     },
 
-    // Manual correction for a player's starting NTRP self-assessment
-    // for cases when they've kept playing outside the app for a while and their
-    // level has clearly moved since they registered. Distinct from applyMatchResult,
-    // which tracks results earned through matches played here.
-    async updateRating(uid: string, rating: number) {
-      await setDoc(doc(db, 'users', uid), { rating }, { merge: true })
+    async updateEmailHidden(uid: string, hidden: boolean) {
+      await setDoc(doc(db, 'users', uid), { emailHidden: hidden }, { merge: true })
       const idx = this.allUsers.findIndex((u) => u.uid === uid)
-      if (idx !== -1) this.allUsers[idx] = { ...this.allUsers[idx]!, rating }
+      if (idx !== -1) this.allUsers[idx] = { ...this.allUsers[idx]!, emailHidden: hidden }
+    },
+
+    async updateContactInfo(
+      uid: string,
+      contact: {
+        telegram: string
+        whatsapp: string
+        phone: string
+        visibility: ContactVisibility
+      },
+    ) {
+      const telegram = contact.telegram.trim()
+      const whatsapp = contact.whatsapp.trim()
+      const phone = contact.phone.trim()
+      await setDoc(
+        doc(db, 'users', uid),
+        {
+          contactTelegram: telegram ? telegram : deleteField(),
+          contactWhatsapp: whatsapp ? whatsapp : deleteField(),
+          contactPhone: phone ? phone : deleteField(),
+          contactVisibility: contact.visibility,
+        },
+        { merge: true },
+      )
+      const idx = this.allUsers.findIndex((u) => u.uid === uid)
+      if (idx !== -1) {
+        this.allUsers[idx] = {
+          ...this.allUsers[idx]!,
+          contactTelegram: telegram || undefined,
+          contactWhatsapp: whatsapp || undefined,
+          contactPhone: phone || undefined,
+          contactVisibility: contact.visibility,
+        }
+      }
+    },
+
+    async updateSuggestedRating(uid: string, suggestedRating: number) {
+      await setDoc(doc(db, 'users', uid), { suggestedRating }, { merge: true })
+      const idx = this.allUsers.findIndex((u) => u.uid === uid)
+      if (idx !== -1) this.allUsers[idx] = { ...this.allUsers[idx]!, suggestedRating }
     },
 
     async applyMatchResult(

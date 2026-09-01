@@ -9,7 +9,6 @@ import {
   updateDoc,
   deleteDoc,
   doc,
-  limit,
 } from 'firebase/firestore'
 import type { Unsubscribe } from 'firebase/firestore'
 import { db } from '@/firebase'
@@ -84,26 +83,6 @@ export const usePlayersStore = defineStore('players', {
         const clubName = useClubsStore().clubs.find((c) => c.id === clubId)?.name ?? 'a club'
         await useNotificationsStore().createClubInviteNotification(uid, clubId, clubName)
       }
-    },
-
-    async addPlayerByEmail(
-      clubId: string,
-      email: string,
-    ): Promise<'ok' | 'not_found' | 'already_added'> {
-      const normalized = email.trim().toLowerCase()
-      const q = query(collection(db, 'users'), where('email', '==', normalized), limit(1))
-      const snapshot = await getDocs(q)
-      if (snapshot.empty) return 'not_found'
-
-      const userDoc = snapshot.docs[0]!
-      const uid = userDoc.id
-      const userData = userDoc.data() as { email?: string; displayName?: string | null }
-
-      if (this.players.some((p) => p.uid === uid)) return 'already_added'
-
-      const name = userData.displayName || normalized.split('@')[0] || normalized
-      await this.createPlayer(clubId, name, uid)
-      return 'ok'
     },
 
     async updatePlayer(id: string, updates: { name: string }) {

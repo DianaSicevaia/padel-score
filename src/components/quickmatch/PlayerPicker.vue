@@ -46,8 +46,14 @@ watch(term, (value) => {
 
 const results = () => usersStore.searchResults.filter((u) => !props.excludeUids.includes(u.uid))
 
-const selectUser = (u: { uid: string; displayName?: string | null; email?: string }) => {
-  emit('update:modelValue', { uid: u.uid, name: u.displayName || u.email || 'Player' })
+const selectUser = (u: {
+  uid: string
+  displayName?: string | null
+  email?: string
+  emailHidden?: boolean
+}) => {
+  const name = u.displayName || (u.emailHidden ? '' : u.email) || 'Player'
+  emit('update:modelValue', { uid: u.uid, name })
   term.value = ''
   showDropdown.value = false
 }
@@ -108,10 +114,12 @@ const onBlur = () => {
           @mousedown.prevent="selectUser(u)"
         >
           <span class="option-row">
-            <span class="option-name">{{ u.displayName || u.email }}</span>
-            <span class="option-ntrp">NTRP {{ formatNtrp(u.rating) }}</span>
+            <span class="option-name">{{ u.displayName || (u.emailHidden ? 'Player' : u.email) }}</span>
+            <span class="option-ntrp">NTRP {{ formatNtrp(u.rating) }} · Rating {{ u.rating }}</span>
           </span>
-          <span v-if="u.displayName && u.email" class="option-email">{{ u.email }}</span>
+          <span v-if="u.displayName && u.email && !u.emailHidden" class="option-email">{{
+            u.email
+          }}</span>
         </button>
         <button
           class="picker-option picker-option--guest"

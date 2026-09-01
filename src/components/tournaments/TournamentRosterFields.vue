@@ -37,9 +37,14 @@ const results = () =>
     (u) => !props.excludeUids.includes(u.uid) && !invitedUids.value.includes(u.uid),
   )
 
-const addPlayer = (u: { uid: string; displayName?: string | null; email?: string }) => {
+const addPlayer = (u: {
+  uid: string
+  displayName?: string | null
+  email?: string
+  emailHidden?: boolean
+}) => {
   if (atCap.value) return
-  invitedNames.value[u.uid] = u.displayName || u.email || 'Player'
+  invitedNames.value[u.uid] = u.displayName || (u.emailHidden ? '' : u.email) || 'Player'
   invitedUids.value = [...invitedUids.value, u.uid]
   term.value = ''
   showDropdown.value = false
@@ -118,10 +123,12 @@ const onBlur = () => {
             @mousedown.prevent="addPlayer(u)"
           >
             <span class="option-row">
-              <span class="option-name">{{ u.displayName || u.email }}</span>
-              <span class="option-ntrp">NTRP {{ formatNtrp(u.rating) }}</span>
+              <span class="option-name">{{ u.displayName || (u.emailHidden ? 'Player' : u.email) }}</span>
+              <span class="option-ntrp">NTRP {{ formatNtrp(u.rating) }} · Rating {{ u.rating }}</span>
             </span>
-            <span v-if="u.displayName && u.email" class="option-email">{{ u.email }}</span>
+            <span v-if="u.displayName && u.email && !u.emailHidden" class="option-email">{{
+              u.email
+            }}</span>
           </button>
           <button class="picker-option picker-option--guest" type="button" @mousedown.prevent="addGuest">
             + Add "{{ term.trim() }}" as guest

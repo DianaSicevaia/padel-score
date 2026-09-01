@@ -2,8 +2,8 @@ import { START_RATING } from '@/stores/users'
 
 const NTRP_MIN = 1.0
 const NTRP_MAX = 7.0
-const NTRP_AT_START_RATING = 3.5
-const RATING_POINTS_PER_NTRP_STEP = 200
+const NTRP_AT_START_RATING = 2.5
+const RATING_POINTS_PER_NTRP_STEP = 400
 
 // Approximates an NTRP (1.0-7.0) skill level from our internal ELO-style
 // rating, purely for display — it isn't a real self-assessed NTRP rating.
