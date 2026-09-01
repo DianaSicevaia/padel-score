@@ -7,6 +7,7 @@ import {
   type User,
   GoogleAuthProvider,
   signInWithPopup,
+  getAdditionalUserInfo,
   sendPasswordResetEmail,
   updateProfile as updateAuthProfile,
 } from 'firebase/auth'
@@ -91,13 +92,17 @@ export const useAuthStore = defineStore('auth', {
       })
     },
 
-    async loginWithGoogle() {
+    // Returns whether this was the account's first-ever sign-in, so the
+    // caller can route new Google sign-ups to the "choose your name" prompt
+    // instead of straight to the dashboard.
+    async loginWithGoogle(): Promise<{ isNewUser: boolean }> {
       const provider = new GoogleAuthProvider()
       const credential = await signInWithPopup(auth, provider)
       localStorage.setItem('loginAt', String(Date.now()))
       this.user = credential.user
       await this.createUserProfile(credential.user)
       this.scheduleExpiry()
+      return { isNewUser: getAdditionalUserInfo(credential)?.isNewUser ?? false }
     },
 
     // initialRating is only passed for brand-new email/password sign-ups

@@ -1,19 +1,24 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { collection, getDocs, query, where } from 'firebase/firestore'
+import { db } from '@/firebase'
 import { useAuthStore } from '@/stores/auth'
 import { useUsersStore } from '@/stores/users'
 import type { PreferredSide, Gender } from '@/stores/users'
+import { useClubsStore } from '@/stores/clubs'
 import { formatNtrp } from '@/utils/ntrp'
 import SidebarNav from '@/components/layout/SidebarNav.vue'
 import MobileTopBar from '@/components/layout/MobileTopBar.vue'
 import MobileBottomNav from '@/components/layout/MobileBottomNav.vue'
 import PlayerAvatar from '@/components/shared/PlayerAvatar.vue'
+import ContactIcon from '@/components/shared/ContactIcon.vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const usersStore = useUsersStore()
+const clubsStore = useClubsStore()
 
 const mobileMenuOpen = ref(false)
 
@@ -22,6 +27,41 @@ const isMe = computed(() => uid.value === authStore.user?.uid)
 
 // usersStore.allUsers is kept live app-wide (see App.vue)
 const profile = computed(() => usersStore.allUsers.find((u) => u.uid === uid.value) ?? null)
+
+// "club members only" visibility for email/contact info below.
+const shareClub = ref(false)
+watch(
+  () => [uid.value, authStore.user?.uid] as const,
+  async ([targetUid, viewerUid]) => {
+    shareClub.value = false
+    if (!targetUid || !viewerUid || targetUid === viewerUid) return
+    const viewerClubIds = clubsStore.clubs.map((c) => c.id).slice(0, 10)
+    if (!viewerClubIds.length) return
+    const snap = await getDocs(
+      query(
+        collection(db, 'players'),
+        where('uid', '==', targetUid),
+        where('clubId', 'in', viewerClubIds),
+      ),
+    )
+    shareClub.value = !snap.empty
+  },
+  { immediate: true },
+)
+
+const canSeePrivateContact = computed(() => isMe.value || shareClub.value)
+const showEmail = computed(() => isMe.value || !profile.value?.emailHidden)
+const hasContactInfo = computed(
+  () =>
+    !!profile.value?.contactTelegram ||
+    !!profile.value?.contactWhatsapp ||
+    !!profile.value?.contactPhone,
+)
+const showContact = computed(() => {
+  if (!hasContactInfo.value) return false
+  if (isMe.value) return true
+  return profile.value?.contactVisibility === 'public' || canSeePrivateContact.value
+})
 
 const displayName = computed(
   () => profile.value?.displayName || profile.value?.email?.split('@')[0] || 'Player',
@@ -113,6 +153,25 @@ const memberSince = computed(() => {
               <span v-if="genderText" class="profile-side">{{ genderText }}</span>
             </div>
           </div>
+
+          <template v-if="(showEmail && profile.email) || showContact">
+            <div class="panel-divider"></div>
+            <div class="contact-body">
+              <span v-if="showEmail && profile.email" class="contact-line">{{
+                profile.email
+              }}</span>
+              <span v-if="showContact && profile.contactTelegram" class="contact-line"
+                ><ContactIcon type="telegram" :size="14" />{{ profile.contactTelegram }}</span
+              >
+              <span v-if="showContact && profile.contactWhatsapp" class="contact-line"
+                ><ContactIcon type="whatsapp" :size="14" />{{ profile.contactWhatsapp }}</span
+              >
+              <span v-if="showContact && profile.contactPhone" class="contact-line"
+                ><ContactIcon type="phone" :size="14" />{{ profile.contactPhone }}</span
+              >
+            </div>
+          </template>
+
           <template v-if="isMe">
             <div class="panel-divider"></div>
             <div class="panel-actions">
@@ -197,7 +256,6 @@ const memberSince = computed(() => {
   background: var(--color-white);
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
   max-width: 480px;
 }
 
@@ -260,6 +318,27 @@ const memberSince = computed(() => {
   font-size: 12px;
   color: var(--color-text-muted);
   margin-top: 4px;
+}
+
+.contact-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 20px;
+}
+
+.contact-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--color-text-strong);
+}
+
+.contact-line svg {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
 }
 
 .panel-actions {

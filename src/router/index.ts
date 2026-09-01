@@ -11,6 +11,7 @@ import QuickMatchView from '../views/QuickMatchView.vue'
 import NotificationsView from '../views/NotificationsView.vue'
 import FindMatchView from '../views/FindMatchView.vue'
 import PlayerProfileView from '../views/PlayerProfileView.vue'
+import ChooseNameView from '../views/ChooseNameView.vue'
 import ScheduleView from '../views/ScheduleView.vue'
 import TournamentsView from '../views/TournamentsView.vue'
 import CreateTournamentView from '../views/CreateTournamentView.vue'
@@ -86,6 +87,12 @@ const router = createRouter({
       path: '/find-match',
       name: 'find-match',
       component: FindMatchView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/welcome',
+      name: 'choose-name',
+      component: ChooseNameView,
       meta: { requiresAuth: true },
     },
     {

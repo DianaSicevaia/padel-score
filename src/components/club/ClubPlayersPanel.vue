@@ -3,7 +3,9 @@ import { ref, computed, watch, onUnmounted } from 'vue'
 import { usePlayersStore } from '@/stores/players'
 import { useClubsStore } from '@/stores/clubs'
 import { useAuthStore } from '@/stores/auth'
+import { useUsersStore } from '@/stores/users'
 import type { Player } from '@/stores/players'
+import { formatNtrp } from '@/utils/ntrp'
 
 const props = defineProps<{
   clubId: string
@@ -19,6 +21,7 @@ const props = defineProps<{
 const playersStore = usePlayersStore()
 const clubsStore = useClubsStore()
 const authStore = useAuthStore()
+const usersStore = useUsersStore()
 
 const toggleAdmin = async (uid: string, makeAdmin: boolean) => {
   if (!props.isOwner) return
@@ -68,7 +71,7 @@ const adding = ref(false)
 const openAdd = () => {
   if (!props.canManage) return
   showSelectPicker.value = false
-  showEmailForm.value = false
+  showSearchForm.value = false
   newPlayerName.value = ''
   addError.value = ''
   showAddForm.value = true
@@ -98,45 +101,71 @@ const submitAdd = async () => {
   }
 }
 
-// ── Email invite ───────────────────────────────────
-const showEmailForm = ref(false)
-const inviteEmail = ref('')
-const inviteError = ref('')
-const inviting = ref(false)
+// Search & add by displayName or email
+const showSearchForm = ref(false)
+const searchTerm = ref('')
+const searching = ref(false)
+const addingUid = ref<string | null>(null)
+let searchDebounce: ReturnType<typeof setTimeout> | null = null
 
-const openEmailForm = () => {
+const openSearchForm = () => {
   if (!props.canManage) return
   showAddForm.value = false
   showSelectPicker.value = false
   cancelEdit()
-  inviteEmail.value = ''
-  inviteError.value = ''
-  showEmailForm.value = true
+  searchTerm.value = ''
+  usersStore.searchResults = []
+  showSearchForm.value = true
 }
 
-const closeEmailForm = () => {
-  showEmailForm.value = false
-  inviteEmail.value = ''
-  inviteError.value = ''
+const closeSearchForm = () => {
+  showSearchForm.value = false
+  searchTerm.value = ''
+  usersStore.searchResults = []
 }
 
-const submitEmailInvite = async () => {
-  if (!props.canManage) return
-  if (!inviteEmail.value.trim()) {
-    inviteError.value = 'Enter an email address.'
+watch(searchTerm, (value) => {
+  if (searchDebounce) clearTimeout(searchDebounce)
+  if (!value.trim()) {
+    usersStore.searchResults = []
     return
   }
-  inviting.value = true
-  inviteError.value = ''
+  searching.value = true
+  searchDebounce = setTimeout(async () => {
+    try {
+      await usersStore.searchUsers(value)
+    } finally {
+      searching.value = false
+    }
+  }, 250)
+})
+
+// Players already in this club (by linked uid) shouldn't show up as results.
+const currentPlayerUids = computed(
+  () => new Set(playersStore.players.map((p) => p.uid).filter((v): v is string => !!v)),
+)
+const searchResultsFiltered = computed(() =>
+  usersStore.searchResults.filter((u) => !currentPlayerUids.value.has(u.uid)),
+)
+
+// Never use a hidden email as the recorded player name — falls back to
+// 'Player' just like the invite-search dropdowns elsewhere in the app.
+const nameFor = (u: { displayName?: string | null; email?: string; emailHidden?: boolean }) =>
+  u.displayName || (u.emailHidden ? '' : u.email) || 'Player'
+
+const addSearchResult = async (u: {
+  uid: string
+  displayName?: string | null
+  email?: string
+  emailHidden?: boolean
+}) => {
+  if (!props.canManage || addingUid.value) return
+  addingUid.value = u.uid
   try {
-    const result = await playersStore.addPlayerByEmail(props.clubId, inviteEmail.value)
-    if (result === 'not_found') inviteError.value = 'No account found with that email.'
-    else if (result === 'already_added') inviteError.value = 'That player is already in this club.'
-    else closeEmailForm()
-  } catch {
-    inviteError.value = 'Could not find user. Check the email and try again.'
+    await playersStore.createPlayer(props.clubId, nameFor(u), u.uid)
+    closeSearchForm()
   } finally {
-    inviting.value = false
+    addingUid.value = null
   }
 }
 
@@ -166,7 +195,7 @@ const clubName = (cid: string) => clubsStore.clubs.find((c) => c.id === cid)?.na
 const openSelectPicker = async () => {
   if (!props.canManage) return
   showAddForm.value = false
-  showEmailForm.value = false
+  showSearchForm.value = false
   cancelEdit()
   selectSearch.value = ''
   showSelectPicker.value = true
@@ -230,7 +259,7 @@ const handleDelete = async (p: Player) => {
 
 <template>
   <div
-    v-if="playersStore.players.length > 0 || showAddForm || showSelectPicker || showEmailForm"
+    v-if="playersStore.players.length > 0 || showAddForm || showSelectPicker || showSearchForm"
     class="panel players-panel"
   >
     <div class="panel-hdr">
@@ -306,7 +335,7 @@ const handleDelete = async (p: Player) => {
               </svg>
               Guest player
             </button>
-            <button class="add-menu-item" @click="(openEmailForm(), (showAddMenu = false))">
+            <button class="add-menu-item" @click="(openSearchForm(), (showAddMenu = false))">
               <svg
                 width="15"
                 height="15"
@@ -318,10 +347,10 @@ const handleDelete = async (p: Player) => {
                 stroke-linejoin="round"
                 aria-hidden="true"
               >
-                <rect width="20" height="16" x="2" y="4" rx="2" />
-                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
               </svg>
-              Add by email
+              Search by name or email
             </button>
             <button class="add-menu-item" @click="(openSelectPicker(), (showAddMenu = false))">
               <svg
@@ -388,25 +417,50 @@ const handleDelete = async (p: Player) => {
       </div>
     </template>
 
-    <!-- Email invite form -->
-    <template v-if="showEmailForm">
+    <!-- Search & add by name or email -->
+    <template v-if="showSearchForm">
       <div class="panel-divider"></div>
-      <div class="add-row add-row--email">
-        <input
-          v-model="inviteEmail"
-          class="field-input-sm"
-          type="email"
-          placeholder="friend@email.com"
-          autofocus
-          @keyup.enter="submitEmailInvite"
-          @keyup.esc="closeEmailForm"
-        />
-        <button class="btn-sm-primary" :disabled="inviting" @click="submitEmailInvite">
-          {{ inviting ? '…' : 'Add' }}
-        </button>
-        <button class="btn-sm-ghost" :disabled="inviting" @click="closeEmailForm">Cancel</button>
+      <div class="select-picker">
+        <div class="select-toolbar">
+          <input
+            v-model="searchTerm"
+            class="field-input-sm"
+            placeholder="Search by name or email…"
+            autofocus
+            @keyup.esc="closeSearchForm"
+          />
+          <button class="btn-sm-ghost" @click="closeSearchForm">Cancel</button>
+        </div>
+        <div v-if="!searchTerm.trim()" class="select-feedback">
+          Start typing a name or email to find a registered player.
+        </div>
+        <div v-else-if="searching" class="select-feedback">Searching…</div>
+        <template v-else>
+          <div v-if="searchResultsFiltered.length === 0" class="select-feedback">
+            No matching players found.
+          </div>
+          <template v-else>
+            <div class="panel-divider"></div>
+            <div
+              v-for="u in searchResultsFiltered"
+              :key="u.uid"
+              class="select-player-row"
+              :class="{ 'select-player-row--taken': addingUid === u.uid }"
+              @click="addSearchResult(u)"
+            >
+              <div class="player-avatar">{{ nameFor(u)[0]?.toUpperCase() ?? '?' }}</div>
+              <div class="player-info">
+                <span class="player-name">{{ nameFor(u) }}</span>
+                <span class="player-stats"
+                  >NTRP {{ formatNtrp(u.rating)
+                  }}<template v-if="u.email && !u.emailHidden"> · {{ u.email }}</template></span
+                >
+              </div>
+              <span class="select-add-hint">{{ addingUid === u.uid ? 'Adding…' : '+ Add' }}</span>
+            </div>
+          </template>
+        </template>
       </div>
-      <p v-if="inviteError" class="add-error">{{ inviteError }}</p>
     </template>
 
     <!-- Guest add form -->
@@ -841,10 +895,6 @@ const handleDelete = async (p: Player) => {
   gap: 8px;
   padding: 10px 20px;
   background: var(--color-bg-subtle);
-}
-
-.add-row--email {
-  gap: 8px;
 }
 
 .add-error {

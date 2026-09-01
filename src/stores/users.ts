@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { watch } from 'vue'
-import { collection, onSnapshot, doc, updateDoc, setDoc } from 'firebase/firestore'
+import { collection, onSnapshot, doc, updateDoc, setDoc, deleteField } from 'firebase/firestore'
 import type { Unsubscribe } from 'firebase/firestore'
 import { db } from '@/firebase'
 
 export type PreferredSide = 'left' | 'right'
 export type Gender = 'male' | 'female'
+export type ContactVisibility = 'public' | 'private'
 
 export interface UserProfile {
   uid: string
@@ -20,6 +21,11 @@ export interface UserProfile {
   preferredSide?: PreferredSide
   avatarBackground?: string
   gender?: Gender
+  emailHidden?: boolean
+  contactTelegram?: string
+  contactWhatsapp?: string
+  contactPhone?: string
+  contactVisibility?: ContactVisibility
 }
 
 interface RawUserData {
@@ -34,6 +40,11 @@ interface RawUserData {
   preferredSide?: PreferredSide | null
   avatarBackground?: string | null
   gender?: Gender | null
+  emailHidden?: boolean | null
+  contactTelegram?: string | null
+  contactWhatsapp?: string | null
+  contactPhone?: string | null
+  contactVisibility?: ContactVisibility | null
 }
 
 export const START_RATING = 1000
@@ -52,6 +63,11 @@ function normalizeUser(uid: string, data: RawUserData): UserProfile {
     preferredSide: data.preferredSide ?? undefined,
     avatarBackground: data.avatarBackground ?? undefined,
     gender: data.gender ?? undefined,
+    emailHidden: data.emailHidden ?? undefined,
+    contactTelegram: data.contactTelegram ?? undefined,
+    contactWhatsapp: data.contactWhatsapp ?? undefined,
+    contactPhone: data.contactPhone ?? undefined,
+    contactVisibility: data.contactVisibility ?? undefined,
   }
 }
 
@@ -157,6 +173,46 @@ export const useUsersStore = defineStore('users', {
       const idx = this.allUsers.findIndex((u) => u.uid === uid)
       if (idx !== -1)
         this.allUsers[idx] = { ...this.allUsers[idx]!, avatarBackground: backgroundId ?? undefined }
+    },
+
+    async updateEmailHidden(uid: string, hidden: boolean) {
+      await setDoc(doc(db, 'users', uid), { emailHidden: hidden }, { merge: true })
+      const idx = this.allUsers.findIndex((u) => u.uid === uid)
+      if (idx !== -1) this.allUsers[idx] = { ...this.allUsers[idx]!, emailHidden: hidden }
+    },
+
+    async updateContactInfo(
+      uid: string,
+      contact: {
+        telegram: string
+        whatsapp: string
+        phone: string
+        visibility: ContactVisibility
+      },
+    ) {
+      const telegram = contact.telegram.trim()
+      const whatsapp = contact.whatsapp.trim()
+      const phone = contact.phone.trim()
+      await setDoc(
+        doc(db, 'users', uid),
+        {
+          contactTelegram: telegram ? telegram : deleteField(),
+          contactWhatsapp: whatsapp ? whatsapp : deleteField(),
+          contactPhone: phone ? phone : deleteField(),
+          contactVisibility: contact.visibility,
+        },
+        { merge: true },
+      )
+      const idx = this.allUsers.findIndex((u) => u.uid === uid)
+      if (idx !== -1) {
+        this.allUsers[idx] = {
+          ...this.allUsers[idx]!,
+          contactTelegram: telegram || undefined,
+          contactWhatsapp: whatsapp || undefined,
+          contactPhone: phone || undefined,
+          contactVisibility: contact.visibility,
+        }
+      }
     },
 
     // Manual correction for a player's starting NTRP self-assessment

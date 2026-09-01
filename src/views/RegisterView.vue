@@ -33,8 +33,8 @@ const register = async () => {
 const loginWithGoogle = async () => {
   try {
     error.value = ''
-    await authStore.loginWithGoogle()
-    await router.push('/dashboard')
+    const { isNewUser } = await authStore.loginWithGoogle()
+    await router.push(isNewUser ? '/welcome' : '/dashboard')
   } catch (e: unknown) {
     handleError(e)
   }
