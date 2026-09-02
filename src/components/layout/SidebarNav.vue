@@ -181,7 +181,11 @@ const myAvatarBackground = computed(
           notificationsStore.unreadCount
         }}</span>
       </a>
-      <a class="sb-nav-item">
+      <a
+        class="sb-nav-item"
+        :class="{ 'sb-nav-item--active': route.path === '/players' }"
+        @click="router.push('/players')"
+      >
         <svg
           width="20"
           height="20"
@@ -193,12 +197,10 @@ const myAvatarBackground = computed(
           stroke-linejoin="round"
           aria-hidden="true"
         >
-          <path d="M3 3v18h18" />
-          <path d="M18 17V9" />
-          <path d="M13 17V5" />
-          <path d="M8 17v-3" />
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
         </svg>
-        Leaderboard
+        Players
       </a>
       <a
         class="sb-nav-item"
